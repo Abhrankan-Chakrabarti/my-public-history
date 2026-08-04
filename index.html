@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Conversations</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    
+<div class="site-header">
+  <h1>Claude Conversations</h1>
+  <p class="subtitle">7 conversations</p>
+</div>
+
+<div class="filter-bar">
+  <input type="text" class="search-box" id="search" placeholder="Filter conversations..." autocomplete="off">
+  <div class="filter-controls">
+    <select id="filter-user" class="filter-select">
+      <option value="">All users</option>
+      
+      <option value="b1a67627-5fa7-4110-8217-64453452c326">Abhrankan Chakrabarti</option>
+      
+    </select>
+    
+    <select id="sort-by" class="filter-select">
+      <option value="date-desc">Date (newest)</option>
+      <option value="date-asc">Date (oldest)</option>
+      <option value="name-asc">Name (A-Z)</option>
+      <option value="name-desc">Name (Z-A)</option>
+      <option value="messages-desc">Messages (most)</option>
+      <option value="messages-asc">Messages (least)</option>
+    </select>
+  </div>
+</div>
+
+<ul class="conversation-list" id="conversation-list">
+  
+  <li class="conversation-item"
+      data-name="code review corrections for vault encryption implementation"
+      data-user="b1a67627-5fa7-4110-8217-64453452c326"
+      data-project=""
+      data-date="2026-07-22T08:03:03.042131+00:00"
+      data-messages="326">
+    <a href="conversations/6fd5f050-40a5-469b-8393-acf3feea7130.html">
+      <div class="conversation-name">Code review corrections for vault encryption implementation</div>
+      <div class="conversation-meta">
+        Jul 22, 2026
+        &middot; 326 messages
+        &middot; Abhrankan Chakrabarti
+      </div>
+    </a>
+  </li>
+  
+  <li class="conversation-item"
+      data-name="full day trip planning"
+      data-user="b1a67627-5fa7-4110-8217-64453452c326"
+      data-project=""
+      data-date="2026-05-24T03:07:11.186749+00:00"
+      data-messages="718">
+    <a href="conversations/2fdfdb9c-1ec1-445f-a911-3ac06afdc74b.html">
+      <div class="conversation-name">Full day trip planning</div>
+      <div class="conversation-meta">
+        May 24, 2026
+        &middot; 718 messages
+        &middot; Abhrankan Chakrabarti
+      </div>
+    </a>
+  </li>
+  
+  <li class="conversation-item"
+      data-name="incomplete conversation"
+      data-user="b1a67627-5fa7-4110-8217-64453452c326"
+      data-project=""
+      data-date="2026-05-23T12:26:38.207726+00:00"
+      data-messages="704">
+    <a href="conversations/32943bec-a0e4-4111-aec0-cf66d98008f7.html">
+      <div class="conversation-name">Incomplete conversation</div>
+      <div class="conversation-meta">
+        May 23, 2026
+        &middot; 704 messages
+        &middot; Abhrankan Chakrabarti
+      </div>
+    </a>
+  </li>
+  
+  <li class="conversation-item"
+      data-name="he"
+      data-user="b1a67627-5fa7-4110-8217-64453452c326"
+      data-project=""
+      data-date="2026-05-20T07:17:36.898032+00:00"
+      data-messages="8">
+    <a href="conversations/867f5a6c-4d36-4cc5-90db-d76ff001f32b.html">
+      <div class="conversation-name">He</div>
+      <div class="conversation-meta">
+        May 20, 2026
+        &middot; 8 messages
+        &middot; Abhrankan Chakrabarti
+      </div>
+    </a>
+  </li>
+  
+  <li class="conversation-item"
+      data-name="react calculator conversion"
+      data-user="b1a67627-5fa7-4110-8217-64453452c326"
+      data-project=""
+      data-date="2026-05-20T04:47:48.235483+00:00"
+      data-messages="6">
+    <a href="conversations/6446800c-b40b-4401-add8-0a1659d7c4cf.html">
+      <div class="conversation-name">React calculator conversion</div>
+      <div class="conversation-meta">
+        May 20, 2026
+        &middot; 6 messages
+        &middot; Abhrankan Chakrabarti
+      </div>
+    </a>
+  </li>
+  
+  <li class="conversation-item"
+      data-name="resume summary for abhrankan chakrabarti"
+      data-user="b1a67627-5fa7-4110-8217-64453452c326"
+      data-project=""
+      data-date="2026-05-18T09:26:43.574038+00:00"
+      data-messages="74">
+    <a href="conversations/dce795d5-72f1-47b9-bc89-ac457b03db36.html">
+      <div class="conversation-name">Resume summary for Abhrankan Chakrabarti</div>
+      <div class="conversation-meta">
+        May 18, 2026
+        &middot; 74 messages
+        &middot; Abhrankan Chakrabarti
+      </div>
+    </a>
+  </li>
+  
+  <li class="conversation-item"
+      data-name="your first chat with claude"
+      data-user="b1a67627-5fa7-4110-8217-64453452c326"
+      data-project=""
+      data-date="2026-05-16T15:21:16.829271+00:00"
+      data-messages="54">
+    <a href="conversations/672f62c2-906b-480d-b348-aa829cf8c75e.html">
+      <div class="conversation-name">Your first chat with Claude</div>
+      <div class="conversation-meta">
+        May 16, 2026
+        &middot; 54 messages
+        &middot; Abhrankan Chakrabarti
+      </div>
+    </a>
+  </li>
+  
+</ul>
+
+<script>
+(function() {
+  var searchInput = document.getElementById('search');
+  var userFilter = document.getElementById('filter-user');
+  var projectFilter = document.getElementById('filter-project');
+  var sortSelect = document.getElementById('sort-by');
+  var list = document.getElementById('conversation-list');
+
+  function applyFilters() {
+    var q = searchInput.value.toLowerCase();
+    var user = userFilter ? userFilter.value : '';
+    var project = projectFilter ? projectFilter.value : '';
+    var items = list.querySelectorAll('.conversation-item');
+    items.forEach(function(item) {
+      var matchName = !q || item.dataset.name.includes(q);
+      var matchUser = !user || item.dataset.user === user;
+      var matchProject = !project || item.dataset.project === project;
+      item.style.display = (matchName && matchUser && matchProject) ? '' : 'none';
+    });
+  }
+
+  function applySort() {
+    var items = Array.from(list.querySelectorAll('.conversation-item'));
+    var sortVal = sortSelect.value;
+    items.sort(function(a, b) {
+      switch (sortVal) {
+        case 'date-desc':
+          return (b.dataset.date || '').localeCompare(a.dataset.date || '');
+        case 'date-asc':
+          return (a.dataset.date || '').localeCompare(b.dataset.date || '');
+        case 'name-asc':
+          return (a.dataset.name || '').localeCompare(b.dataset.name || '');
+        case 'name-desc':
+          return (b.dataset.name || '').localeCompare(a.dataset.name || '');
+        case 'messages-desc':
+          return parseInt(b.dataset.messages || '0') - parseInt(a.dataset.messages || '0');
+        case 'messages-asc':
+          return parseInt(a.dataset.messages || '0') - parseInt(b.dataset.messages || '0');
+        default:
+          return 0;
+      }
+    });
+    items.forEach(function(item) { list.appendChild(item); });
+  }
+
+  searchInput.addEventListener('input', applyFilters);
+  if (userFilter) userFilter.addEventListener('change', applyFilters);
+  if (projectFilter) projectFilter.addEventListener('change', applyFilters);
+  sortSelect.addEventListener('change', function() { applySort(); applyFilters(); });
+})();
+</script>
+
+  </div>
+</body>
+</html>

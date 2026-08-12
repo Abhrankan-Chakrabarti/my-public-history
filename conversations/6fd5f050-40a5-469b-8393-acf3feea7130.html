@@ -15,7 +15,7 @@
   <h1>Code review corrections for vault encryption implementation</h1>
   <div class="meta">
     Jul 22, 2026 at 08:03 AM
-    &middot; 394 messages
+    &middot; 398 messages
   </div>
 </div>
 
@@ -14296,6 +14296,226 @@ Copied /home/claude/eldritchguard/tests/run_harness.py to /mnt/user-data/outputs
 Copied /home/claude/eldritchguard/tests/test_payloads.py to /mnt/user-data/outputs/test_payloads.py</pre></details>
 <div class="content-text"><p><strong>EldritchGuard is ready to ship</strong> — same reminder as always about <code>present_files</code> flattening paths: <code>run_harness.py</code>/<code>test_payloads.py</code> need to go in <code>tests/</code>, <code>main.rs</code> under <code>src/</code>.</p>
 <p><strong>Important given the filename-collision problem that's bitten us twice now</strong>: download these files <em>now</em>, before touching anything else — <code>main.rs</code>/<code>Cargo.toml</code> are exactly the names that keep getting overwritten across projects in this sandbox's flat outputs folder. That's the last of the three tools (<code>foxpunch</code>, <code>foxsniff</code>, <code>eldritchguard</code>) — remaining: the two CTF challenges, which need the public/private-solution split I flagged earlier rather than straightforward packaging.</p>
+</div>
+</div>
+</div>
+  
+  <div class="message message-human">
+<div class="message-bubble">
+<div class="content-text"><p>Help me ship both the tools foxsniff and eldritchguard just like you did for foxpunch and others</p>
+</div>
+</div>
+</div>
+  
+  <div class="message message-assistant">
+<div class="message-bubble">
+<div class="content-text"><p><strong>foxsniff</strong></p>
+<p><strong>Repo name:</strong> <code>foxsniff</code></p>
+<p><strong>Description:</strong></p>
+<blockquote>
+<p>Minimal raw-socket IPv4 packet sniffer for Linux — no dependencies, no libpcap/scapy, just socket + struct.</p>
+</blockquote>
+<p><strong>License:</strong> MIT</p>
+<p><strong>Topics/tags:</strong></p>
+<ul>
+<li><code>python</code></li>
+<li><code>networking</code></li>
+<li><code>packet-sniffer</code></li>
+<li><code>raw-socket</code></li>
+<li><code>linux</code></li>
+<li><code>cli</code></li>
+<li><code>security</code></li>
+<li><code>no-dependencies</code></li>
+</ul>
+<p><strong>Tag:</strong> <code>v0.1.0</code></p>
+<p><strong>Commit message:</strong></p>
+<pre><code><span class="n">Initial</span><span class="w"> </span><span class="n">release</span><span class="p">:</span><span class="w"> </span><span class="n">minimal</span><span class="w"> </span><span class="n">raw</span><span class="o">-</span><span class="n">socket</span><span class="w"> </span><span class="n">IPv4</span><span class="w"> </span><span class="n">sniffer</span>
+
+<span class="o">-</span><span class="w"> </span><span class="n">AF_PACKET</span><span class="o">/</span><span class="n">SOCK_RAW</span><span class="w"> </span><span class="n">capture</span><span class="p">,</span><span class="w"> </span><span class="n">manual</span><span class="w"> </span><span class="n">Ethernet</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">IPv4</span><span class="w"> </span><span class="n">header</span>
+<span class="w">  </span><span class="n">unpacking</span><span class="p">,</span><span class="w"> </span><span class="n">no</span><span class="w"> </span><span class="n">libpcap</span><span class="o">/</span><span class="n">scapy</span><span class="w"> </span><span class="n">dependency</span>
+<span class="o">-</span><span class="w"> </span><span class="n">fix</span><span class="p">:</span><span class="w"> </span><span class="n">unpack_ethernet_frame</span><span class="w"> </span><span class="n">double</span><span class="o">-</span><span class="n">applied</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="n">byte</span><span class="o">-</span><span class="n">order</span>
+<span class="w">  </span><span class="n">conversion</span><span class="w"> </span><span class="o">--</span><span class="w"> </span><span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;!H&#39;</span><span class="p">,</span><span class="w"> </span><span class="o">...</span><span class="p">)</span><span class="w"> </span><span class="n">already</span><span class="w"> </span><span class="n">decodes</span><span class="w"> </span><span class="n">EtherType</span>
+<span class="w">  </span><span class="n">into</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="n">correct</span><span class="w"> </span><span class="n">host</span><span class="o">-</span><span class="n">native</span><span class="w"> </span><span class="nb nb-Type">int</span><span class="w"> </span><span class="p">(</span><span class="mh">0x0800</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">IPv4</span><span class="p">),</span><span class="w"> </span><span class="n">but</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">code</span>
+<span class="w">  </span><span class="n">then</span><span class="w"> </span><span class="n">called</span><span class="w"> </span><span class="n">socket</span><span class="o">.</span><span class="n">htons</span><span class="p">()</span><span class="w"> </span><span class="n">on</span><span class="w"> </span><span class="n">that</span><span class="w"> </span><span class="n">already</span><span class="o">-</span><span class="n">decoded</span><span class="w"> </span><span class="n">value</span><span class="w"> </span><span class="n">a</span>
+<span class="w">  </span><span class="n">second</span><span class="w"> </span><span class="n">time</span><span class="p">,</span><span class="w"> </span><span class="n">producing</span><span class="w"> </span><span class="mi">8</span><span class="w"> </span><span class="n">instead</span><span class="w"> </span><span class="n">of</span><span class="w"> </span><span class="mf">2048.</span><span class="w"> </span><span class="n">The</span><span class="w"> </span><span class="n">comparison</span><span class="w"> </span><span class="n">was</span>
+<span class="w">  </span><span class="n">written</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="k">match</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">wrong</span><span class="w"> </span><span class="n">value</span><span class="w"> </span><span class="p">(</span><span class="o">==</span><span class="w"> </span><span class="mi">8</span><span class="p">),</span><span class="w"> </span><span class="n">so</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">two</span><span class="w"> </span><span class="n">bugs</span>
+<span class="w">  </span><span class="n">canceled</span><span class="w"> </span><span class="n">out</span><span class="w"> </span><span class="n">on</span><span class="w"> </span><span class="n">little</span><span class="o">-</span><span class="n">endian</span><span class="w"> </span><span class="n">hosts</span><span class="w"> </span><span class="p">(</span><span class="n">the</span><span class="w"> </span><span class="n">vast</span><span class="w"> </span><span class="n">majority</span><span class="w"> </span><span class="n">of</span><span class="w"> </span><span class="n">real</span>
+<span class="w">  </span><span class="n">machines</span><span class="p">)</span><span class="w"> </span><span class="n">but</span><span class="w"> </span><span class="n">would</span><span class="w"> </span><span class="n">silently</span><span class="w"> </span><span class="n">drop</span><span class="w"> </span><span class="n">every</span><span class="w"> </span><span class="n">IPv4</span><span class="w"> </span><span class="n">packet</span><span class="w"> </span><span class="n">on</span><span class="w"> </span><span class="n">a</span>
+<span class="w">  </span><span class="n">big</span><span class="o">-</span><span class="n">endian</span><span class="w"> </span><span class="n">host</span><span class="o">.</span><span class="w"> </span><span class="n">Fixed</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="n">use</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">correct</span><span class="w"> </span><span class="mh">0x0800</span><span class="w"> </span><span class="n">comparison</span>
+<span class="w">  </span><span class="n">directly</span><span class="p">;</span><span class="w"> </span><span class="n">verified</span><span class="w"> </span><span class="n">live</span><span class="w"> </span><span class="n">against</span><span class="w"> </span><span class="n">real</span><span class="w"> </span><span class="n">captured</span><span class="w"> </span><span class="n">traffic</span><span class="w"> </span><span class="n">before</span>
+<span class="w">  </span><span class="ow">and</span><span class="w"> </span><span class="n">after</span>
+<span class="o">-</span><span class="w"> </span><span class="n">IPv4</span><span class="w"> </span><span class="n">header</span><span class="w"> </span><span class="n">field</span><span class="w"> </span><span class="n">offsets</span><span class="w"> </span><span class="p">(</span><span class="n">TTL</span><span class="p">,</span><span class="w"> </span><span class="n">protocol</span><span class="p">,</span><span class="w"> </span><span class="n">src</span><span class="o">/</span><span class="n">dst</span><span class="w"> </span><span class="n">IP</span><span class="p">,</span><span class="w"> </span><span class="n">correct</span>
+<span class="w">  </span><span class="n">handling</span><span class="w"> </span><span class="n">of</span><span class="w"> </span><span class="n">variable</span><span class="o">-</span><span class="n">length</span><span class="w"> </span><span class="n">headers</span><span class="w"> </span><span class="n">via</span><span class="w"> </span><span class="n">IHL</span><span class="p">)</span><span class="w"> </span><span class="n">verified</span><span class="w"> </span><span class="n">correct</span>
+<span class="w">  </span><span class="n">against</span><span class="w"> </span><span class="n">RFC</span><span class="w"> </span><span class="mi">791</span><span class="w"> </span><span class="n">layout</span>
+<span class="o">-</span><span class="w"> </span><span class="n">package</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">src</span><span class="o">-</span><span class="n">layout</span><span class="w"> </span><span class="n">with</span><span class="w"> </span><span class="n">pyproject</span><span class="o">.</span><span class="n">toml</span><span class="p">,</span><span class="w"> </span><span class="n">foxsniff</span><span class="w"> </span><span class="n">console</span>
+<span class="w">  </span><span class="n">script</span><span class="w"> </span><span class="n">entry</span><span class="w"> </span><span class="n">point</span>
+<span class="o">-</span><span class="w"> </span><span class="n">add</span><span class="w"> </span><span class="mi">8</span><span class="w"> </span><span class="n">unit</span><span class="w"> </span><span class="n">tests</span><span class="w"> </span><span class="n">against</span><span class="w"> </span><span class="n">synthetic</span><span class="w"> </span><span class="n">crafted</span><span class="w"> </span><span class="n">packet</span><span class="w"> </span><span class="n">bytes</span>
+<span class="w">  </span><span class="p">(</span><span class="n">Ethernet</span><span class="w"> </span><span class="n">frame</span><span class="w"> </span><span class="n">construction</span><span class="p">,</span><span class="w"> </span><span class="n">IPv4</span><span class="w"> </span><span class="n">header</span><span class="w"> </span><span class="n">construction</span><span class="w"> </span><span class="n">including</span>
+<span class="w">  </span><span class="n">an</span><span class="w"> </span><span class="n">IHL</span><span class="o">-</span><span class="n">with</span><span class="o">-</span><span class="n">options</span><span class="w"> </span><span class="n">edge</span><span class="w"> </span><span class="n">case</span><span class="p">),</span><span class="w"> </span><span class="n">independent</span><span class="w"> </span><span class="n">of</span><span class="w"> </span><span class="n">root</span><span class="o">/</span><span class="n">live</span><span class="w"> </span><span class="n">capture</span>
+<span class="o">-</span><span class="w"> </span><span class="n">add</span><span class="w"> </span><span class="n">MIT</span><span class="w"> </span><span class="n">LICENSE</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="o">.</span><span class="n">gitignore</span>
+</code></pre>
+<p><strong>Release notes:</strong></p>
+<pre><code class="language-markdown"><span class="gu">## v0.1.0 — Initial release</span>
+
+Minimal raw-socket IPv4 sniffer for Linux. No dependencies beyond
+the Python standard library.
+
+<span class="gu">### Fixed during development</span>
+<span class="k">-</span><span class="w"> </span>A byte-order double-conversion bug meant EtherType detection only
+  worked by coincidence on little-endian hosts (the overwhelming
+  majority of real machines) and would have silently dropped every
+  IPv4 packet on a big-endian host. Verified against real captured
+  traffic before and after the fix.
+
+<span class="gu">### Requirements</span>
+Python &gt;= 3.8, Linux (uses AF_PACKET). Requires root to run.
+</code></pre>
+<pre><code class="language-bash">git<span class="w"> </span>init
+git<span class="w"> </span>add<span class="w"> </span>.
+git<span class="w"> </span>commit<span class="w"> </span>-F-<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+<span class="s">Initial release: minimal raw-socket IPv4 sniffer</span>
+
+<span class="s">- AF_PACKET/SOCK_RAW capture, manual Ethernet + IPv4 header</span>
+<span class="s">  unpacking, no libpcap/scapy dependency</span>
+<span class="s">- fix: unpack_ethernet_frame double-applied a byte-order</span>
+<span class="s">  conversion -- struct.unpack(&#39;!H&#39;, ...) already decodes EtherType</span>
+<span class="s">  into a correct host-native int (0x0800 for IPv4), but the code</span>
+<span class="s">  then called socket.htons() on that already-decoded value a</span>
+<span class="s">  second time, producing 8 instead of 2048. The comparison was</span>
+<span class="s">  written to match the wrong value (== 8), so the two bugs</span>
+<span class="s">  canceled out on little-endian hosts (the vast majority of real</span>
+<span class="s">  machines) but would silently drop every IPv4 packet on a</span>
+<span class="s">  big-endian host. Fixed to use the correct 0x0800 comparison</span>
+<span class="s">  directly; verified live against real captured traffic before</span>
+<span class="s">  and after</span>
+<span class="s">- IPv4 header field offsets (TTL, protocol, src/dst IP, correct</span>
+<span class="s">  handling of variable-length headers via IHL) verified correct</span>
+<span class="s">  against RFC 791 layout</span>
+<span class="s">- package as src-layout with pyproject.toml, foxsniff console</span>
+<span class="s">  script entry point</span>
+<span class="s">- add 8 unit tests against synthetic crafted packet bytes</span>
+<span class="s">  (Ethernet frame construction, IPv4 header construction including</span>
+<span class="s">  an IHL-with-options edge case), independent of root/live capture</span>
+<span class="s">- add MIT LICENSE and .gitignore</span>
+<span class="s">EOF</span>
+git<span class="w"> </span>tag<span class="w"> </span>-a<span class="w"> </span>v0.1.0<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;Initial release&quot;</span>
+git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>origin<span class="w"> </span>https://github.com/foxhackerzdevs/foxsniff.git
+git<span class="w"> </span>push<span class="w"> </span>-u<span class="w"> </span>origin<span class="w"> </span>main<span class="w"> </span>--tags
+
+python<span class="w"> </span>-m<span class="w"> </span>build
+twine<span class="w"> </span>upload<span class="w"> </span>dist/*
+</code></pre>
+<hr />
+<p><strong>eldritchguard</strong></p>
+<p><strong>Repo name:</strong> <code>eldritchguard</code></p>
+<p><strong>Description:</strong></p>
+<blockquote>
+<p>Minimalist Unix-pipe prompt-injection filter — pattern matching, Unicode normalization, and entropy scoring in a zero-bloat Rust binary. 0 FP / 0 FN on a 27-payload measured test suite.</p>
+</blockquote>
+<p><strong>License:</strong> MIT</p>
+<p><strong>Topics/tags:</strong></p>
+<ul>
+<li><code>rust</code></li>
+<li><code>security</code></li>
+<li><code>prompt-injection</code></li>
+<li><code>llm-security</code></li>
+<li><code>cli</code></li>
+<li><code>unix</code></li>
+<li><code>stream-processing</code></li>
+<li><code>pattern-matching</code></li>
+</ul>
+<p><strong>Tag:</strong> <code>v0.1.0</code></p>
+<p><strong>Commit message:</strong></p>
+<pre><code><span class="n">Initial</span><span class="w"> </span><span class="n">release</span><span class="p">:</span><span class="w"> </span><span class="n">hardened</span><span class="w"> </span><span class="n">prompt</span><span class="o">-</span><span class="n">injection</span><span class="w"> </span><span class="n">stream</span><span class="w"> </span><span class="n">filter</span>
+
+<span class="o">-</span><span class="w"> </span><span class="n">signature</span><span class="o">/</span><span class="n">pattern</span><span class="w"> </span><span class="n">matching</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">instruction</span><span class="o">-</span><span class="n">override</span><span class="w"> </span><span class="ow">and</span>
+<span class="w">  </span><span class="n">jailbreak</span><span class="w"> </span><span class="n">phrasings</span><span class="p">,</span><span class="w"> </span><span class="n">covering</span><span class="w"> </span><span class="n">common</span><span class="w"> </span><span class="n">paraphrases</span><span class="w"> </span><span class="n">rather</span><span class="w"> </span><span class="n">than</span>
+<span class="w">  </span><span class="n">just</span><span class="w"> </span><span class="n">exact</span><span class="w"> </span><span class="n">strings</span>
+<span class="o">-</span><span class="w"> </span><span class="n">NFKC</span><span class="w"> </span><span class="n">Unicode</span><span class="w"> </span><span class="n">normalization</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Cyrillic</span><span class="o">-</span><span class="n">confusables</span><span class="w"> </span><span class="n">fold</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">basic</span>
+<span class="w">  </span><span class="n">leetspeak</span><span class="w"> </span><span class="n">digit</span><span class="w"> </span><span class="n">folding</span><span class="p">,</span><span class="w"> </span><span class="n">applied</span><span class="w"> </span><span class="n">before</span><span class="w"> </span><span class="n">pattern</span><span class="w"> </span><span class="n">matching</span><span class="w"> </span><span class="o">--</span>
+<span class="w">  </span><span class="n">closes</span><span class="w"> </span><span class="n">homoglyph</span><span class="w"> </span><span class="n">evasion</span><span class="w"> </span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="w"> </span><span class="n">Cyrillic</span><span class="w"> </span><span class="err">ѕ</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">Latin</span><span class="w"> </span><span class="n">s</span><span class="p">)</span><span class="w"> </span><span class="ow">and</span>
+<span class="w">  </span><span class="n">digit</span><span class="o">-</span><span class="n">substitution</span><span class="w"> </span><span class="n">obfuscation</span><span class="w"> </span><span class="p">(</span><span class="n">ign0re</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">ignore</span><span class="p">)</span>
+<span class="o">-</span><span class="w"> </span><span class="n">structured</span><span class="o">-</span><span class="n">data</span><span class="w"> </span><span class="n">exemptions</span><span class="w"> </span><span class="p">(</span><span class="n">JWT</span><span class="o">/</span><span class="n">UUID</span><span class="o">/</span><span class="n">hex</span><span class="w"> </span><span class="nb">hash</span><span class="o">/</span><span class="n">base64</span><span class="w"> </span><span class="n">shape</span>
+<span class="w">  </span><span class="n">detection</span><span class="p">)</span><span class="w"> </span><span class="n">so</span><span class="w"> </span><span class="n">ordinary</span><span class="w"> </span><span class="nb">log</span><span class="o">/</span><span class="n">API</span><span class="w"> </span><span class="n">data</span><span class="w"> </span><span class="n">skips</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">entropy</span><span class="w"> </span><span class="n">gate</span>
+<span class="o">-</span><span class="w"> </span><span class="n">Shannon</span><span class="w"> </span><span class="n">entropy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="n">fallback</span><span class="w"> </span><span class="n">anomaly</span><span class="w"> </span><span class="k">signal</span>
+<span class="o">-</span><span class="w"> </span><span class="n">measured</span><span class="w"> </span><span class="n">against</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="mi">27</span><span class="o">-</span><span class="n">payload</span><span class="w"> </span><span class="n">labeled</span><span class="w"> </span><span class="n">test</span><span class="w"> </span><span class="n">suite</span><span class="w"> </span><span class="n">covering</span><span class="w"> </span><span class="n">exact</span>
+<span class="w">  </span><span class="ow">and</span><span class="w"> </span><span class="n">obfuscated</span><span class="w"> </span><span class="n">jailbreaks</span><span class="p">,</span><span class="w"> </span><span class="n">homoglyph</span><span class="o">/</span><span class="n">leetspeak</span><span class="w"> </span><span class="n">evasion</span><span class="p">,</span><span class="w"> </span><span class="n">benign</span>
+<span class="w">  </span><span class="n">high</span><span class="o">-</span><span class="n">entropy</span><span class="w"> </span><span class="n">structured</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="n">normal</span><span class="w"> </span><span class="n">prose</span><span class="o">/</span><span class="n">logs</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="bp">false</span>
+<span class="w">  </span><span class="n">positives</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="bp">false</span><span class="w"> </span><span class="n">negatives</span><span class="w"> </span><span class="o">--</span><span class="w"> </span><span class="n">reached</span><span class="w"> </span><span class="n">through</span><span class="w"> </span><span class="n">two</span><span class="w"> </span><span class="n">iterative</span>
+<span class="w">  </span><span class="n">hardening</span><span class="w"> </span><span class="n">rounds</span><span class="p">,</span><span class="w"> </span><span class="n">each</span><span class="w"> </span><span class="n">verified</span><span class="w"> </span><span class="n">with</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">same</span><span class="w"> </span><span class="n">harness</span><span class="w"> </span><span class="n">before</span><span class="w"> </span><span class="ow">and</span>
+<span class="w">  </span><span class="n">after</span><span class="w"> </span><span class="p">(</span><span class="n">started</span><span class="w"> </span><span class="n">at</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="n">FP</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">7</span><span class="w"> </span><span class="n">FN</span><span class="w"> </span><span class="n">on</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">original</span><span class="w"> </span><span class="n">naive</span>
+<span class="w">  </span><span class="n">implementation</span><span class="p">)</span>
+<span class="o">-</span><span class="w"> </span><span class="n">add</span><span class="w"> </span><span class="n">MIT</span><span class="w"> </span><span class="n">LICENSE</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="o">.</span><span class="n">gitignore</span>
+</code></pre>
+<p><strong>Release notes:</strong></p>
+<pre><code class="language-markdown"><span class="gu">## v0.1.0 — Initial release</span>
+
+Minimalist, zero-bloat Rust stream filter for detecting
+prompt-injection attempts in piped text. No heavy runtimes, no ML
+model required for the default path.
+
+<span class="gu">### Measured detection rate</span>
+On a 27-payload labeled test suite (included, see <span class="sb">`tests/`</span>) covering
+exact-phrase and paraphrased jailbreaks, Cyrillic homoglyph and
+leetspeak evasion, benign high-entropy structured data (JWTs,
+UUIDs, hashes, base64), and normal prose/log lines:
+
+<span class="k">-</span><span class="w"> </span>False positives: 0
+<span class="k">-</span><span class="w"> </span>False negatives: 0
+
+This is measured against a suite built around the specific evasion
+classes iterated on during development -- not a claim of
+robustness against arbitrary novel evasion techniques. See the
+README&#39;s Roadmap for the planned optional perplexity-based second
+stage.
+
+<span class="gu">### Requirements</span>
+Rust 2021 edition. Dependencies: crossterm, regex,
+unicode-normalization.
+</code></pre>
+<pre><code class="language-bash">git<span class="w"> </span>init
+git<span class="w"> </span>add<span class="w"> </span>.
+git<span class="w"> </span>commit<span class="w"> </span>-F-<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+<span class="s">Initial release: hardened prompt-injection stream filter</span>
+
+<span class="s">- signature/pattern matching for instruction-override and</span>
+<span class="s">  jailbreak phrasings, covering common paraphrases rather than</span>
+<span class="s">  just exact strings</span>
+<span class="s">- NFKC Unicode normalization + Cyrillic-confusables fold + basic</span>
+<span class="s">  leetspeak digit folding, applied before pattern matching --</span>
+<span class="s">  closes homoglyph evasion (e.g. Cyrillic ѕ for Latin s) and</span>
+<span class="s">  digit-substitution obfuscation (ign0re -&gt; ignore)</span>
+<span class="s">- structured-data exemptions (JWT/UUID/hex hash/base64 shape</span>
+<span class="s">  detection) so ordinary log/API data skips the entropy gate</span>
+<span class="s">- Shannon entropy as a fallback anomaly signal</span>
+<span class="s">- measured against a 27-payload labeled test suite covering exact</span>
+<span class="s">  and obfuscated jailbreaks, homoglyph/leetspeak evasion, benign</span>
+<span class="s">  high-entropy structured data, and normal prose/logs: 0 false</span>
+<span class="s">  positives, 0 false negatives -- reached through two iterative</span>
+<span class="s">  hardening rounds, each verified with the same harness before and</span>
+<span class="s">  after (started at 1 FP / 7 FN on the original naive</span>
+<span class="s">  implementation)</span>
+<span class="s">- add MIT LICENSE and .gitignore</span>
+<span class="s">EOF</span>
+git<span class="w"> </span>tag<span class="w"> </span>-a<span class="w"> </span>v0.1.0<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;Initial release&quot;</span>
+git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>origin<span class="w"> </span>https://github.com/foxhackerzdevs/eldritchguard.git
+git<span class="w"> </span>push<span class="w"> </span>-u<span class="w"> </span>origin<span class="w"> </span>main<span class="w"> </span>--tags
+</code></pre>
+</div>
+</div>
+</div>
+  
+  <div class="message message-human">
+<div class="message-bubble">
+<div class="content-text"><p>What next?</p>
+</div>
+</div>
+</div>
+  
+  <div class="message message-assistant">
+<div class="message-bubble">
+<div class="content-text"><p>Recapping where things stand: <code>foxpunch</code>, <code>foxsniff</code>, and <code>eldritchguard</code> all have shipping instructions ready. That leaves the two CTF challenges (RSA timing side-channel, FoxPipe keystream-reuse) — those need the public/private-solution split I flagged earlier before shipping, which is a different kind of task than the tool packaging just done.</p>
+<p>Want to tackle those two next, or is there something else you'd rather pick up first?</p>
 </div>
 </div>
 </div>

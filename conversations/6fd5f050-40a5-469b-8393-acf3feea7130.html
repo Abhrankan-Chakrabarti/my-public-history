@@ -15,7 +15,7 @@
   <h1>Code review corrections for vault encryption implementation</h1>
   <div class="meta">
     Jul 22, 2026 at 08:03 AM
-    &middot; 404 messages
+    &middot; 408 messages
   </div>
 </div>
 
@@ -14634,6 +14634,127 @@ foxpipe-ctf-solution/     (PRIVATE — never push this one publicly)
 </div>
 <details class="tool-use"><summary>Confirm the flag is literally hardcoded in the public source file</summary><div class="tool-name">Tool: bash_tool</div></details>
 <details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;20:    b\&quot;SECRET_FLAG: FLAG{f0x_k3ystr34m_r3us3_1s_f4t4l_2026}\&quot;,\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+</div>
+</div>
+  
+  <div class="message message-human">
+<div class="message-bubble">
+<div class="content-text"><p>Continue</p>
+</div>
+</div>
+</div>
+  
+  <div class="message message-assistant">
+<div class="message-bubble">
+<div class="content-text"><p>Confirmed exactly as bad as it sounds — line 20, <code>SECRET_FLAG: FLAG{f0x_k3ystr34m_r3us3_1s_f4t4l_2026}</code>, sitting in plaintext in the file I explicitly told players in the README to &quot;read... nothing here is hidden.&quot; Anyone doing <code>grep FLAG vulnerable_pipeline.py</code> gets the flag instantly, with zero need to touch the network or exploit the actual vulnerability at all. All the public/private repo-splitting I did was protecting nothing — the crypto flaw is real and correctly demonstrated, but it's completely moot when the secret sits unencrypted in the readable source itself. This is a real design failure on my part, not just a theoretical concern.</p>
+<p>Fixing it properly — the flag must never be a literal in source that's meant to be public. Reading it from an environment variable at runtime instead, with a clearly-fake placeholder for local testing:</p>
+</div>
+<details class="tool-use"><summary>Remove hardcoded flag from public source; read from environment variable instead, with an obviously-fake placeholder for local dev/testing</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result tool-error"><summary>Result from str_replace</summary><pre>String to replace not found in /home/claude/foxpipe-ctf-repo/vulnerable_pipeline.py. Use the view tool to see the current file content before retrying. If you made a successful str_replace to this file since your last view, that edit invalidated your view output.</pre></details>
+<details class="tool-use"><summary>Check exact current content</summary><div class="tool-name">Tool: view</div></details>
+<details class="tool-result"><summary>Result from view</summary><pre>     1	#!/usr/bin/env python3
+     2	import socket
+     3	import time
+     4	from os import urandom
+     5	from Crypto.Cipher import AES
+     6	
+     7	HOST = &#x27;127.0.0.1&#x27;
+     8	PORT = 9999
+     9	STATIC_KEY = urandom(16)
+    10	# PyCryptodome&#x27;s CTR mode requires nonce length in [0..15] bytes -- a full
+    11	# 16-byte nonce leaves no room for the internal counter and raises
+    12	# &quot;ValueError: Nonce is too long&quot;. 8 bytes is the library&#x27;s own recommended
+    13	# default for CTR mode.
+    14	STATIC_NONCE = b&quot;FoxPipeN&quot;  # 8-byte fixed nonce (THE FLAW)
+    15	
+    16	MESSAGES = [
+    17	    b&quot;SYSTEM_STATUS: ALL OPERATIONAL SYSTEMS RUNNING SMOOTHLY.&quot;,
+    18	    b&quot;ROUTING_TABLE: INTERNAL IP ASSIGNMENTS ARE STABLE TODAY.&quot;,
+    19	    b&quot;ALERT_LOGGED: UNAUTHORIZED PORT SCAN DETECTED AND BLOCKED.&quot;,
+    20	    b&quot;SECRET_FLAG: FLAG{f0x_k3ystr34m_r3us3_1s_f4t4l_2026}&quot;,
+    21	    b&quot;MAINTENANCE: SCHEDULED BACKUPS WILL OCCUR AT MIDNIGHT PST.&quot;
+    22	]
+    23	
+    24	def encrypt_message(plaintext):
+    25	    cipher = AES.new(STATIC_KEY, AES.MODE_CTR, nonce=STATIC_NONCE)
+    26	    return cipher.encrypt(plaintext)
+    27	
+    28	def start_server():
+    29	    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    30	    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    31	    server.bind((HOST, PORT))
+    32	    server.listen(1)
+    33	    print(f&quot;[*] FoxPipe Vulnerable Broadcast Service running on {HOST}:{PORT}&quot;)
+    34	
+    35	    while True:
+    36	        try:
+    37	            conn, addr = server.accept()
+    38	            print(f&quot;[+] Connection established from {addr[0]}:{addr[1]}&quot;)
+    39	            for msg in MESSAGES:
+    40	                ciphertext = encrypt_message(msg)
+    41	                conn.sendall(len(ciphertext).to_bytes(4, byteorder=&#x27;big&#x27;) + ciphertext)
+    42	                time.sleep(0.2)
+    43	            print(f&quot;[-] Finished streaming data to {addr[0]}. Closing channel.&quot;)
+    44	            conn.close()
+    45	        excep
+... (truncated)</pre></details>
+<details class="tool-use"><summary>Remove hardcoded flag from public source; read from environment variable with obviously-fake placeholder for local dev</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/foxpipe-ctf-repo/vulnerable_pipeline.py</pre></details>
+<div class="content-text"><p>Now verifying this actually still works end-to-end, both with and without the environment variable set:</p>
+</div>
+<details class="tool-use"><summary>Verify the placeholder is used when no env var set, and no real flag string exists in source</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:-1,&quot;stdout&quot;:&quot;&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<details class="tool-use"><summary>Confirm no real flag string remains anywhere in the file</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;22:FLAG_CONTENT = os.environ.get(\&quot;FOXPIPE_FLAG\&quot;, \&quot;FLAG{local_test_placeholder_not_the_real_flag}\&quot;)\n28:    f\&quot;SECRET_FLAG: {FLAG_CONTENT}\&quot;.encode(),\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>Confirmed — the real flag string is completely gone from the public source. Now a full functional re-test with a real env var set, to confirm the injection mechanism actually works:</p>
+</div>
+<details class="tool-use"><summary>Test with a real environment variable set to confirm injection works</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:-1,&quot;stdout&quot;:&quot;[*] FoxPipe Vulnerable Broadcast Service running on 127.0.0.1:9999\n&quot;,&quot;stderr&quot;:&quot;/bin/sh: 9: xxd: not found\n&quot;}</pre></details>
+<details class="tool-use"><summary>Check captured raw output without xxd</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;-rw-r--r-- 1 root root 301 Aug 13 09:00 /tmp/raw_output.bin\nb&#x27;\\x00\\x00\\x008\\xbc.\\xdd\\xb9H(&lt;\\nlN\\xc3\\xba:y\\x99&gt;\\xa9\\xf5\\x12\\x0fc\\xd75\\xb6\\xb3\\xee&#x27;\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>Let's decrypt this via the exact same known-plaintext technique to confirm the env-var flag round-trips correctly end-to-end:</p>
+</div>
+<details class="tool-use"><summary>Decrypt the captured stream to confirm the test flag round-tripped correctly</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;parsed 5 messages\nRecovered flag message: b&#x27;SECRET_FLAG: FLAG{test_env_injection_works_correctly}&#x27;\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>Confirmed end-to-end — the environment-variable injection works correctly, and the fix doesn't break anything about the actual vulnerability being demonstrated.</p>
+</div>
+<details class="tool-use"><summary>Presenting file(s)...</summary><div class="tool-name">Tool: present_files</div></details>
+<details class="tool-result"><summary>Result from present_files</summary><pre>Files copied:
+Copied /home/claude/foxpipe-ctf-repo/vulnerable_pipeline.py to /mnt/user-data/outputs/vulnerable_pipeline.py</pre></details>
+<div class="content-text"><p>Let me also check the uploaded <code>challenge.pcap</code> — you included it alongside this question, might be worth verifying against it too:</p>
+</div>
+<details class="tool-use"><summary>Run the solver against the newly uploaded pcap</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;-rw-r--r-- 1 claude ubuntu 1468 Aug 13 04:22 /mnt/user-data/uploads/challenge.pcap\n[*] Loaded 5 ciphertexts, lengths = [56, 56, 58, 52, 58]\n[+] Keystream recovered using known plaintext:\n    b&#x27;SYSTEM_STATUS: ALL OPERATIONAL SYSTEMS RUNNING SMOOTHLY.&#x27;\n    (matched ciphertext index 0, cross-validated against another message)\n[*] Keystream length recovered: 56 bytes\n\n--- Message 1 (56 bytes, 56 decrypted) ---\nSYSTEM_STATUS: ALL OPERATIONAL SYSTEMS RUNNING SMOOTHLY.\n\n--- Message 2 (56 bytes, 56 decrypted) ---\nROUTING_TABLE: INTERNAL IP ASSIGNMENTS ARE STABLE TODAY.\n\n--- Message 3 (58 bytes, 56 decrypted) ---\nALERT_LOGGED: UNAUTHORIZED PORT SCAN DETECTED AND BLOCKE\n\n--- Message 4 (52 bytes, 52 decrypted) ---\nSECRET_FLAG: FLAG{f0x_k3ystr34m_r3us3_1s_f4t4l_2026}\n\n--- Message 5 (58 bytes, 56 decrypted) ---\nMAINTENANCE: SCHEDULED BACKUPS WILL OCCUR AT MIDNIGHT PS\n\n============================================================\nFLAG FOUND:\nSECRET_FLAG: FLAG{f0x_k3ystr34m_r3us3_1s_f4t4l_2026}\n============================================================\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>That pcap decrypts fine too (from an earlier capture against the pre-fix version, given it has the old hardcoded flag) — confirms <code>solve.py</code> itself remains correct and unaffected by the source fix, since it only ever depends on the captured ciphertexts, not the server's source code.</p>
+<p>One more thing worth adding to the writeup — deployment guidance for whoever actually stands up the real challenge instance, since that's now a required step that didn't exist before:</p>
+</div>
+<details class="tool-use"><summary>Add deployment note about the new env var requirement</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/foxpipe-ctf-solution-repo/WRITEUP.md</pre></details>
+<details class="tool-use"><summary>Presenting file(s)...</summary><div class="tool-name">Tool: present_files</div></details>
+<details class="tool-result"><summary>Result from present_files</summary><pre>Files copied:
+Copied /home/claude/foxpipe-ctf-solution-repo/WRITEUP.md to /mnt/user-data/outputs/WRITEUP.md</pre></details>
+<div class="content-text"><p><strong>Good catch — genuinely embarrassing miss on my part, not a nitpick.</strong> The public/private repo split I built was real infrastructure protecting nothing, because the actual secret was sitting in plaintext in the file I told players to read. Fixed by moving the flag to an environment variable (<code>FOXPIPE_FLAG</code>) with an obviously-fake placeholder for local dev, verified the injection actually works end-to-end (fresh test flag, real capture, real decrypt), and added deployment guidance to the writeup so whoever stands up the real instance doesn't accidentally recreate the same mistake by hardcoding it back in somewhere.</p>
+<p>The public/private split itself is still the right structure — it's just that now it's actually protecting something.</p>
+</div>
+</div>
+</div>
+  
+  <div class="message message-human">
+<div class="message-bubble">
+<div class="content-text"><p>Why not ship with the challenge.pcap?
+Then no deployment is required.</p>
+</div>
+</div>
+</div>
+  
+  <div class="message message-assistant">
+<div class="message-bubble">
+<details class="thinking"><summary>Embraced static pcap distribution to eliminate deployment overhead.</summary><div class="thinking-content"><p>That's a good simplification — instead of a live server, I could just ship a static pre-captured pcap file directly in the repo. This is actually a standard CTF pattern for crypto/forensics challenges, and it removes any need for live infrastructure since players just download the repo and solve offline.…</p>
+</div></details>
+<div class="content-text"><p>Good point — much simpler, and it's actually a very standard pattern for crypto/forensics CTF challenges (static artifact instead of live infrastructure). No server to host, no uptime to manage, players just download and solve offline. Let me regenerate a fresh <code>challenge.pcap</code> using the <em>current fixed</em> source (with a real flag set via the env var, not the placeholder) so everything's consistent, then ship that instead of asking anyone to run a server.</p>
+</div>
+<details class="tool-use"><summary>Start the fixed server with the real flag for a final canonical capture</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:-1,&quot;stdout&quot;:&quot;&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
 </div>
 </div>
   

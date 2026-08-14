@@ -15,7 +15,7 @@
   <h1>Resume summary for Abhrankan Chakrabarti</h1>
   <div class="meta">
     May 18, 2026 at 09:26 AM
-    &middot; 74 messages
+    &middot; 76 messages
   </div>
 </div>
 
@@ -1982,6 +1982,83 @@ generate_resume()</p>
 </div>
 <details class="tool-use"><summary>Presenting file(s)...</summary><div class="tool-name">Tool: present_files</div></details>
 <div class="content-text"><p>Every future rebuild from the same script will produce the exact same MD5. On Termux, just run the same script and you'll get <code>189cc08300f223c0c4ace79e241acf0f</code> every time — as long as no content changes.</p>
+</div>
+</div>
+</div>
+  
+  <div class="message message-human">
+<div class="message-bubble">
+<div class="files"><span class="file-pill">photo.jpg</span> <span class="file-pill">Abhrankan_Chakrabarti_Resume_With_Photo.py</span></div>
+</div>
+</div>
+  
+  <div class="message message-assistant">
+<div class="message-bubble">
+<details class="tool-use"><summary>Read the uploaded Python script</summary><div class="tool-name">Tool: view</div></details>
+<details class="tool-result"><summary>Result from view</summary><pre>     1	import reportlab.rl_config as rl_config
+     2	rl_config.invariant = 1
+     3	
+     4	from reportlab.pdfbase import pdfdoc
+     5	
+     6	STATIC_DATE_STRING = &quot;D:20260101000000Z&quot;
+     7	original_PDFDocument = pdfdoc.PDFDocument
+     8	
+     9	class DeterministicPDFDocument(original_PDFDocument):
+    10	    def __init__(self, *args, **kwargs):
+    11	        super().__init__(*args, **kwargs)
+    12	        if self.info:
+    13	            self.info.CreationDate = STATIC_DATE_STRING
+    14	            self.info.ModDate = STATIC_DATE_STRING
+    15	
+    16	pdfdoc.PDFDocument = DeterministicPDFDocument
+    17	
+    18	from reportlab.lib.pagesizes import A4
+    19	from reportlab.lib.styles import ParagraphStyle
+    20	from reportlab.lib.units import cm
+    21	from reportlab.lib import colors
+    22	from reportlab.platypus import (
+    23	    SimpleDocTemplate, Paragraph, Spacer, HRFlowable,
+    24	    Table, TableStyle, Image
+    25	)
+    26	from reportlab.lib.enums import TA_CENTER
+    27	
+    28	OUTPUT = &quot;Abhrankan_Chakrabarti_Resume_With_Photo.pdf&quot;
+    29	
+    30	# Put your photo in the same directory as this script.
+    31	PHOTO = &quot;photo.jpg&quot;
+    32	
+    33	doc = SimpleDocTemplate(
+    34	    OUTPUT, pagesize=A4,
+    35	    topMargin=1.5*cm, bottomMargin=1.5*cm,
+    36	    leftMargin=2*cm, rightMargin=2*cm
+    37	)
+    38	
+    39	DARK = colors.HexColor(&quot;#1a1a2e&quot;)
+    40	LIGHT_ACCENT = colors.HexColor(&quot;#0f3460&quot;)
+    41	GRAY = colors.HexColor(&quot;#555555&quot;)
+    42	LIGHT_GRAY = colors.HexColor(&quot;#f0f0f0&quot;)
+    43	
+    44	name_style = ParagraphStyle(
+    45	    &quot;name&quot;, fontSize=22, fontName=&quot;Helvetica-Bold&quot;,
+    46	    textColor=DARK, alignment=TA_CENTER,
+    47	    spaceAfter=8, leading=28
+    48	)
+    49	tag_style = ParagraphStyle(
+    50	    &quot;tag&quot;, fontSize=10, fontName=&quot;Helvetica&quot;,
+    51	    textColor=GRAY, alignment=TA_CENTER, spaceAfter=2
+    52	)
+    53	con_style = ParagraphStyle(
+    54	    &quot;con&quot;, fontSize=8.5, fontName=&quot;Helvetica&quot;,
+    55	    textColor=GRAY, ali
+... (truncated)</pre></details>
+<div class="content-text"><p>The script is complete and correct. Let me run it with the uploaded photo.</p>
+</div>
+<details class="tool-use"><summary>Run the resume with photo script</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;Done: Abhrankan_Chakrabarti_Resume_With_Photo.pdf\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<details class="tool-use"><summary>Copy to outputs and get MD5</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;2a8ac2f5530342cfa7e6554641fa168a  /mnt/user-data/outputs/Abhrankan_Chakrabarti_Resume_With_Photo.pdf\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<details class="tool-use"><summary>Presenting file(s)...</summary><div class="tool-name">Tool: present_files</div></details>
+<div class="content-text"><p>Done! MD5: <code>2a8ac2f5530342cfa7e6554641fa168a</code> — deterministic as long as <code>photo.jpg</code> doesn't change. On Termux, place <code>photo.jpg</code> and the script in the same directory and run it directly.</p>
 </div>
 </div>
 </div>

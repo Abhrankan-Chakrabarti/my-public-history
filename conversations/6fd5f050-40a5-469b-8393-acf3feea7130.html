@@ -15,7 +15,7 @@
   <h1>Code review corrections for vault encryption implementation</h1>
   <div class="meta">
     Jul 22, 2026 at 08:03 AM
-    &middot; 426 messages
+    &middot; 428 messages
   </div>
 </div>
 
@@ -15237,6 +15237,155 @@ both caught, fixed, and documented in the writeup.</li>
 </code></pre>
 <p>One thing worth deciding before you push: <code>vulnerable_pipeline.py</code> still has the <code>except Exception: ... break</code> bug I flagged last time (any single connection error kills the server permanently). It doesn't affect the shipped static <code>challenge.pcap</code>, but if you ever want to run this live again (e.g. for an actual event with many simultaneous solvers), that's worth fixing first — say the word and I'll patch and re-verify it.</p>
 </div>
+</div>
+</div>
+  
+  <div class="message message-human">
+<div class="message-bubble">
+<div class="content-text"><p>Your call</p>
+</div>
+</div>
+</div>
+  
+  <div class="message message-assistant">
+<div class="message-bubble">
+<div class="content-text"><p>I'll fix it — cheap, low-risk, and worth having correct given this could plausibly get deployed live for a real event later.</p>
+</div>
+<details class="tool-use"><summary>Check current server loop structure</summary><div class="tool-name">Tool: view</div></details>
+<details class="tool-result"><summary>Result from view</summary><pre>     1	#!/usr/bin/env python3
+     2	import socket
+     3	import time
+     4	import os
+     5	from os import urandom
+     6	from Crypto.Cipher import AES
+     7	
+     8	HOST = &#x27;127.0.0.1&#x27;
+     9	PORT = 9999
+    10	STATIC_KEY = urandom(16)
+    11	# PyCryptodome&#x27;s CTR mode requires nonce length in [0..15] bytes -- a full
+    12	# 16-byte nonce leaves no room for the internal counter and raises
+    13	# &quot;ValueError: Nonce is too long&quot;. 8 bytes is the library&#x27;s own recommended
+    14	# default for CTR mode.
+    15	STATIC_NONCE = b&quot;FoxPipeN&quot;  # 8-byte fixed nonce (THE FLAW)
+    16	
+    17	# The real flag is injected via environment variable at deploy time and is
+    18	# NEVER committed to this repository. The default below is an obviously
+    19	# fake placeholder for local development/testing of the server logic --
+    20	# it demonstrates the vulnerability pattern without exposing any real
+    21	# secret in source control.
+    22	FLAG_CONTENT = os.environ.get(&quot;FOXPIPE_FLAG&quot;, &quot;FLAG{local_test_placeholder_not_the_real_flag}&quot;)
+    23	
+    24	MESSAGES = [
+    25	    b&quot;SYSTEM_STATUS: ALL OPERATIONAL SYSTEMS RUNNING SMOOTHLY.&quot;,
+    26	    b&quot;ROUTING_TABLE: INTERNAL IP ASSIGNMENTS ARE STABLE TODAY.&quot;,
+    27	    b&quot;ALERT_LOGGED: UNAUTHORIZED PORT SCAN DETECTED AND BLOCKED.&quot;,
+    28	    f&quot;SECRET_FLAG: {FLAG_CONTENT}&quot;.encode(),
+    29	    b&quot;MAINTENANCE: SCHEDULED BACKUPS WILL OCCUR AT MIDNIGHT PST.&quot;
+    30	]
+    31	
+    32	def encrypt_message(plaintext):
+    33	    cipher = AES.new(STATIC_KEY, AES.MODE_CTR, nonce=STATIC_NONCE)
+    34	    return cipher.encrypt(plaintext)
+    35	
+    36	def start_server():
+    37	    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    38	    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    39	    server.bind((HOST, PORT))
+    40	    server.listen(1)
+    41	    print(f&quot;[*] FoxPipe Vulnerable Broadcast Service running on {HOST}:{PORT}&quot;)
+    42	
+    43	    while True:
+    44	        try:
+    45	            conn, addr = serv
+... (truncated)</pre></details>
+<details class="tool-use"><summary>Fix: any single connection error no longer kills the server permanently -- logs and continues accepting new connections instead. Fatal startup errors (bind/listen) still propagate normally since they&#x27;re outside the loop.</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/foxpipe-ctf-repo/vulnerable_pipeline.py</pre></details>
+<div class="content-text"><p>Now verifying the server actually survives multiple sequential connections without dying, and re-verifying the full challenge still solves correctly with this change:</p>
+</div>
+<details class="tool-use"><summary>Start the fixed server</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:-1,&quot;stdout&quot;:&quot;&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<details class="tool-use"><summary>Check if it started despite odd result</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:1,&quot;stdout&quot;:&quot;cat: /tmp/server_multi.log: No such file or directory\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<details class="tool-use"><summary>Retry starting the server</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;[*] FoxPipe Vulnerable Broadcast Service running on 127.0.0.1:9999\nroot       486  6.6  0.3  20316 15704 ?        Ss   03:56   0:00 python3 vulnerable_pipeline.py\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>Running. Testing multiple sequential connections to confirm it survives:</p>
+</div>
+<details class="tool-use"><summary>Test three sequential connections, confirming server stays alive throughout</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;connection 1 done, size: 300\nroot       486  1.0  0.3  20516 16296 ?        Ss   03:56   0:00 python3 vulnerable_pipeline.py\n---\nconnection 2 done, size: 300\nroot       486  0.7  0.3  20516 16296 ?        Ss   03:56   0:00 python3 vulnerable_pipeline.py\n---\nconnection 3 done, size: 300\nroot       486  0.6  0.3  20516 16296 ?        Ss   03:56   0:00 python3 vulnerable_pipeline.py\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>Server (same PID throughout) correctly survives all three connections, each getting the full 300 bytes. This is a real behavioral improvement — previously the server would have died after the first connection (or the first hiccup). Now confirming an actual error doesn't kill it either, by forcibly disconnecting mid-stream:</p>
+</div>
+<details class="tool-use"><summary>Force an abrupt client disconnect mid-stream to trigger a real connection error, then confirm the server survives it</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;[+] Connection established from 127.0.0.1:53098\n[-] Finished streaming data to 127.0.0.1. Closing channel.\n[+] Connection established from 127.0.0.1:38894\n[-] Finished streaming data to 127.0.0.1. Closing channel.\n[+] Connection established from 127.0.0.1:45192\n[!] Error handling connection: [Errno 32] Broken pipe\nroot       486  0.4  0.3  20516 16360 ?        Ss   03:56   0:00 python3 vulnerable_pipeline.py\n--- confirming server still serves a normal connection after the abrupt disconnect ---\nsize: 300\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>Genuine <code>Broken pipe</code> error triggered by the abrupt disconnect, logged correctly, and the server <strong>kept running</strong> and served the next connection normally (300 bytes) — exactly the fix working as intended, not just a theoretical improvement. Final challenge re-verification with this fix in place:</p>
+</div>
+<details class="tool-use"><summary>Recapture challenge.pcap one final time with the improved server</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:-1,&quot;stdout&quot;:&quot;&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<details class="tool-use"><summary>Check capture results despite odd tool result</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;-rw-r--r-- 1 tcpdump tcpdump 1734 Aug 15 03:57 /home/claude/foxpipe-ctf-repo/challenge.pcap\ntcpdump: listening on lo, link-type EN10MB (Ethernet), snapshot length 262144 bytes\n17 packets captured\n34 packets received by filter\n0 packets dropped by kernel\nbytes: 300\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>Clean capture again (17 packets, 300 bytes, matching the earlier known-good pattern). Final solve verification:</p>
+</div>
+<details class="tool-use"><summary>Final solve verification with the recaptured pcap</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:-1,&quot;stdout&quot;:&quot;&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<details class="tool-use"><summary>Retry solve verification</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;MAINTENANCE: SCHEDULED BACKUPS WILL OCCUR AT MIDNIGHT PS\n\n============================================================\nFLAG FOUND:\nSECRET_FLAG: FLAG{f0x_k3ystr34m_r3us3_1s_f4t4l_2026}\n============================================================\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<details class="thinking"><summary>Assessed encrypted bundle contents and file discrepancies.</summary><div class="thinking-content"><p>I realize the encrypted bundle only includes WRITEUP.md and solve.py, not the pcap or vulnerable_pipeline.py — and since neither of those two files changed content, the exist…</p>
+</div></details>
+<div class="content-text"><p>All confirmed working with the fix in place. Now updating the writeup, since it previously flagged this exact bug as a known-but-unfixed issue — that note is now stale:</p>
+</div>
+<details class="tool-use"><summary>Check current dev notes section</summary><div class="tool-name">Tool: view</div></details>
+<details class="tool-result"><summary>Result from view</summary><pre>     1	# Solution — FoxPipe Keystream Reuse
+     2	
+     3	This writeup and `solve.py` are distributed as `solution.tar.gz.gpg` in the public `foxpipe-ctf` repo, encrypted with **the flag itself as the passphrase**. If you&#x27;re reading this, you&#x27;ve already solved the challenge (or brute-forced/guessed the passphrase, which is exactly as hard as solving it properly). Decrypt with:
+     4	
+     5	```bash
+     6	gpg -d solution.tar.gz.gpg | tar -xzf -
+     7	```
+     8	
+     9	## The vulnerability
+    10	
+    11	`vulnerable_pipeline.py` encrypts every message with AES-CTR using the same `STATIC_KEY` **and** the same `STATIC_NONCE` for the entire server session:
+    12	
+    13	```python
+    14	def encrypt_message(plaintext):
+    15	    cipher = AES.new(STATIC_KEY, AES.MODE_CTR, nonce=STATIC_NONCE)
+    16	    return cipher.encrypt(plaintext)
+    17	```
+    18	
+    19	Reusing (key, nonce) in CTR mode regenerates the identical keystream for every message. This is the &quot;two-time pad&quot; problem: `C1 ⊕ C2 = M1 ⊕ M2`, the key cancels out entirely.
+    20	
+    21	## The technique
+    22	
+    23	Several broadcast messages are predictable operational chatter, not secret. Solving is:
+    24	
+    25	1. `challenge.pcap` is already a full captured session — no need to set up your own capture.
+    26	2. Guess (or brute-force against a small wordlist) the plaintext of one non-flag message.
+    27	3. `keystream = ciphertext ⊕ known_plaintext`.
+    28	4. Apply that keystream to every other ciphertext, including the flag message.
+    29	
+    30	## Running the solver
+    31	
+    32	```bash
+    33	python3 solve.py
+    34	```
+    35	
+    36	Expects `challenge.pcap` in the same directory. Requires `scapy` (`pip install scapy`).
+    37	
+    38	Expected output ends with:
+    39	```
+    40	FLAG FOUND:
+    41	SECRET_FLAG: FLAG{f0x_k3ystr34m_r3us3_1s_f4t4l_2026}
+    42	```
+    43	
+    44	## Regenerating challenge.pcap (maintainers only)
+    45	
+    46	`challenge.pcap` in the public repo is a static, pr
+... (truncated)</pre></details>
+<details class="tool-use"><summary>Update the note now that this bug is actually fixed, not just flagged as a known issue</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/foxpipe-ctf-solution-repo/WRITEUP.md</pre></details>
+<div class="content-text"><p>Now rebuilding the encrypted bundle with the updated writeup:</p>
+</div>
+<details class="tool-use"><summary>Rebuild the encrypted bundle with the updated writeup</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;-rw-r--r-- 1 root root 4001 Aug 15 03:58 solution.tar.gz.gpg\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
 </div>
 </div>
   

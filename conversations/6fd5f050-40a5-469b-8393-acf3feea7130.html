@@ -15,7 +15,7 @@
   <h1>Code review corrections for vault encryption implementation</h1>
   <div class="meta">
     Jul 22, 2026 at 08:03 AM
-    &middot; 443 messages
+    &middot; 445 messages
   </div>
 </div>
 
@@ -15815,6 +15815,28 @@ def recover_d_improved(N, real_d, bit_length, candidates_per_bit=20, verbose=Tru
 </div>
 <details class="tool-use"><summary>Test the larger-signal oracle against a real 24-bit key with real timing</summary><div class="tool-name">Tool: bash_tool</div></details>
 <details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;real d = 0b101111100001001001 (18 bits)\n\nbit   1: recovered=1 actual=0 diff0=-19.392ms [MISMATCH]\nbit   2: recovered=0 actual=1 diff0=+15.049ms [MISMATCH]\nbit   3: recovered=0 actual=1 diff0=+15.228ms [MISMATCH]\nbit   4: recovered=1 actual=1 diff0=-3.108ms [OK]\nbit   5: recovered=1 actual=1 diff0=-15.452ms [OK]\nbit   6: recovered=1 actual=1 diff0=-26.698ms [OK]\nbit   7: recovered=1 actual=0 diff0=-0.680ms [MISMATCH]\nbit   8: recovered=0 actual=0 diff0=+33.876ms [OK]\nbit   9: recovered=0 actual=0 diff0=+23.769ms [OK]\nbit  10: recovered=1 actual=0 diff0=-9.662ms [MISMATCH]\nbit  11: recovered=1 actual=1 diff0=-3.203ms [OK]\nbit  12: recovered=0 actual=0 diff0=+15.817ms [OK]\nbit  13: recovered=1 actual=0 diff0=-37.355ms [MISMATCH]\nbit  14: recovered=1 actual=1 diff0=-27.062ms [OK]\nbit  15: recovered=0 actual=0 diff0=+37.020ms [OK]\nbit  16: recovered=0 actual=0 diff0=+6.341ms [OK]\nbit  17: recovered=1 actual=1 diff0=-16.777ms [OK]\n\nrecovered d = 0b110011110011011001\nreal d      = 0b101111100001001001\nMATCH: False\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+</div>
+</div>
+  
+  <div class="message message-human">
+<div class="message-bubble">
+<div class="content-text"><p>Continue</p>
+</div>
+</div>
+</div>
+  
+  <div class="message message-assistant">
+<div class="message-bubble">
+<details class="thinking"><summary>Diagnosed fundamental misalignment between simulation and oracle computation.</summary><div class="thinking-content"><p>Even with much larger signal magnitudes well above the noise floor, bit 1 still fails and triggers the expected cascading errors. Looking closer at bit 1: the diff is strongly negative, meaning the predicted-slow group actually ran faster, so the algorithm picked the wrong hypothesis despite hypothesis 0 being correct.</p>
+<p>I'm checking whether this is a polarity bug rather than a noise issue by tracing through the decision logic: a positive diff confirms hypothesis 0 (slow group really is slower), while a negative diff should correctly flip to hypothesis 1. The logic itself is internally consistent — negative diff correctly triggers the &quot;1&quot; branch — yet it still produced the wrong answer despite a strong 19ms signal, which suggests the underlying hypothesis about which group should be slower might itself be flawed.</p>
+<p>I suspect the real issue is a mismatch in how I'm selecting informative ciphertexts: I'm simulating the predicate using only the partial known exponent bits tested so far, but the actual oracle query presumably uses the full real exponent, so the simulation and the real computation aren't actually aligned.</p>
+<p>Scaling up the sleep constants amplifies both the target signal and the downstream noise from unknown future bits proportionally, so the signal-to-noise ratio stays constant — amplitude alone can't fix this structural confound, even though it does help against fixed, non-scaling system jitter, which was the separate problem I originally diagnosed.</p>
+<p>Other options include backtracking verification as a safety net, or adaptively scaling sample counts per bit position—more samples for early bits where remaining unknowns are high, fewer for later bits where uncertainty has shrunk. Given the effort invested, I want to actually land on a working, verified end-to-end solution rather than keep theorizing.…</p>
+</div></details>
+<div class="content-text"><p>That's revealing — even a huge 19ms signal got the <em>wrong</em> answer at bit 1. This points to something deeper than plain system jitter (which I already fixed by scaling up the constants). Let me think through why: at bit 1, only 2 bits of the exponent are known, meaning <strong>16 remaining unknown bits</strong> each still contribute their own unpredictable predicate-timing variance to every real query. Critically, since I scaled <em>all</em> the sleep constants up together, both the target signal <em>and</em> this downstream-bit noise scaled up by the same factor — so the signal-to-noise ratio for <em>this</em> noise source never actually improved, only the ratio against fixed OS jitter did. Testing this diagnosis directly:</p>
+</div>
+<details class="tool-use"><summary>Test whether increasing distinct ciphertext count (not sleep magnitude) fixes the worst-case early-bit scenario</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;d = 101110001010001 (15 bits)\ntesting bit 1, correct = 0, known-so-far = &#x27;1&#x27; (only 1 bit known -- max downstream noise case)\nn=  10: diff0= +37.268ms  predicted=0 (correct=0) [OK]\nn=  40: diff0=  +4.301ms  predicted=0 (correct=0) [OK]\nn= 100: diff0=  +2.019ms  predicted=0 (correct=0) [OK]\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
 </div>
 </div>
   

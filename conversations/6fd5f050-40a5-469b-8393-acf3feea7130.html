@@ -15,7 +15,7 @@
   <h1>Code review corrections for vault encryption implementation</h1>
   <div class="meta">
     Jul 22, 2026 at 08:03 AM
-    &middot; 639 messages
+    &middot; 645 messages
   </div>
 </div>
 
@@ -18927,6 +18927,343 @@ Copied /home/claude/resume-analyzer/placement_prep_page.tsx to /mnt/user-data/ou
 <span class="w">            </span><span class="err">└──</span><span class="w"> </span><span class="nx">auth</span><span class="o">-</span><span class="nx">context</span><span class="p">.</span><span class="nx">tsx</span><span class="w">     </span><span class="err">#</span><span class="w"> </span><span class="nx">JWT</span><span class="w"> </span><span class="nx">state</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">localStorage</span><span class="w"> </span><span class="nx">persistence</span>
 </code></pre>
 <p>All three README-promised features (Resume Analyzer, Skill Roadmap, Mock Interview) are real, wired end-to-end, and tested everywhere verifiable without a live Gemini key. No stubs or fake UI remaining.</p>
+</div>
+</div>
+</div>
+  
+  <div class="message message-human">
+<div class="message-bubble">
+<div class="content-text"><p>Commit message:</p>
+<pre><code class="language-scminput"><code>Implement interview feature with session management and messaging
+</code></code></pre>
+<p>Version tag and release notes?</p>
+</div>
+</div>
+</div>
+  
+  <div class="message message-assistant">
+<div class="message-bubble">
+<div class="content-text"><p>Given this completes all three README-promised features, <code>v1.0.0</code> fits well here — the first release where the product actually delivers everything it claims.</p>
+<p><strong>Tag:</strong> <code>v1.0.0</code></p>
+<p><strong>Release notes:</strong></p>
+<pre><code class="language-markdown"><span class="gu">## v1.0.0 — All three core features complete</span>
+
+Resume Analyzer, Skill Roadmap, and Mock Interview are now all real
+and working, end to end. First release where the product delivers
+everything the README describes.
+
+<span class="gu">### Added</span>
+<span class="k">-</span><span class="w"> </span>Mock interview feature: multi-turn AI interview via a chat-style
+  UI. Backend reconstructs conversation history from the database on
+  every turn (rather than relying on the SDK&#39;s in-memory chat
+  helper, which wouldn&#39;t survive across separate HTTP requests or a
+  server restart) -- the correct pattern for a stateless REST
+  backend, verified against current <span class="sb">`google-genai`</span> docs.
+<span class="k">-</span><span class="w"> </span><span class="sb">`InterviewSession`</span> / <span class="sb">`InterviewMessage`</span> models
+<span class="k">-</span><span class="w"> </span><span class="sb">`POST /placement/interview/start`</span>, <span class="sb">`POST /placement/interview/{id}/respond`</span>,
+  <span class="sb">`GET /placement/interview/{id}`</span>, <span class="sb">`GET /placement/interview/history/list`</span>
+<span class="k">-</span><span class="w"> </span><span class="sb">`total_interviews_taken`</span> analytics now counts only completed
+  sessions, not ones still in progress
+
+<span class="gu">### Fixed</span>
+<span class="k">-</span><span class="w"> </span>All three Gemini-backed services (resume, roadmap, interview) now
+  wrap the live API call itself, not just the missing-key and
+  bad-JSON cases -- a genuine API failure (network issue, rate
+  limit) previously would have been an unhandled exception instead
+  of the graceful 502 the rest of the app already had.
+<span class="k">-</span><span class="w"> </span>A failed &quot;start interview&quot; call was leaving a phantom, permanently
+  <span class="sb">`in_progress`</span> session in the database with zero messages, since
+  the session was committed before the AI call was attempted. Fixed
+  to only persist the session once the first question is
+  successfully generated; reverified against the exact failing
+  scenario.
+
+<span class="gu">### Verified</span>
+Server starts cleanly, graceful error handling on missing API key,
+input validation, empty-state history, full regression pass on
+resume/roadmap features, frontend build, and the exact request
+formats the new frontend code sends tested against the real running
+backend.
+</code></pre>
+<pre><code class="language-bash">git<span class="w"> </span>add<span class="w"> </span>.
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;Implement interview feature with session management and messaging&quot;</span>
+git<span class="w"> </span>tag<span class="w"> </span>-a<span class="w"> </span>v1.0.0<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;All three core features complete&quot;</span>
+git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>main<span class="w"> </span>--tags
+</code></pre>
+</div>
+</div>
+</div>
+  
+  <div class="message message-human">
+<div class="message-bubble">
+<div class="content-text"><p>What next?</p>
+</div>
+</div>
+</div>
+  
+  <div class="message message-assistant">
+<div class="message-bubble">
+<details class="tool-use"><summary>Updating memory</summary><div class="tool-name">Tool: memory_str_replace</div></details>
+<details class="tool-result"><summary>Result from memory_str_replace</summary><pre>Edited: replaced 192 bytes with 207 bytes, file is now 1323 of 49152 bytes. [version: d3cd261677e8] (pass as if_version on your next edit of this path)</pre></details>
+<div class="content-text"><p>All three features are built, tested, and tagged <code>v1.0.0</code> — a genuine milestone for the group project. Nothing outstanding on my end for this one right now.</p>
+<p>Bring whatever's next when it's there — either more on this project (deployment, real API key testing, UI polish) or something else entirely.</p>
+</div>
+</div>
+</div>
+  
+  <div class="message message-human">
+<div class="message-bubble">
+<div class="content-text"><p>Your call</p>
+</div>
+</div>
+</div>
+  
+  <div class="message message-assistant">
+<div class="message-bubble">
+<div class="content-text"><p>Given everything I've verified so far has been ad-hoc <code>curl</code> testing that isn't saved anywhere, I'll formalize it into a real, re-runnable <code>pytest</code> suite — this captures everything already confirmed manually and lets the rest of the group (and future me) re-verify without redoing it by hand every time.</p>
+</div>
+<details class="tool-use"><summary>Check pytest availability, install test dependencies</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;ls: cannot access &#x27;/home/claude/resume-analyzer/backend/venv/bin/pytest&#x27;: No such file or directory\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<details class="tool-use"><summary>Confirm pytest installed correctly</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;/home/claude/resume-analyzer/backend/venv/bin/pytest\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<details class="tool-use"><summary>Dev/test-only requirements, separate from production requirements.txt</summary><div class="tool-name">Tool: create_file</div></details>
+<details class="tool-result"><summary>Result from create_file</summary><pre>File created successfully: /home/claude/resume-analyzer/backend/requirements-dev.txt</pre></details>
+<details class="tool-use"><summary>Verify pinned test dependency versions are current</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;pytest: latest = 9.1.1\nhttpx: latest = 0.28.1\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<details class="tool-use"><summary>Use actual current pytest version</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/requirements-dev.txt</pre></details>
+<div class="content-text"><p>Now the test fixtures — using an isolated test database via dependency override, not the real dev DB:</p>
+</div>
+<details class="tool-use"><summary>pytest fixtures: isolated test DB via dependency override, real TestClient</summary><div class="tool-name">Tool: create_file</div></details>
+<details class="tool-result"><summary>Result from create_file</summary><pre>File created successfully: /home/claude/resume-analyzer/backend/tests/conftest.py</pre></details>
+<div class="content-text"><p>Before writing all the test files, let me verify this fixture pattern actually works — there's a subtlety worth checking: <code>main.py</code> calls <code>Base.metadata.create_all()</code> against the <em>real</em> configured engine at import time, before the dependency override takes effect for request handling:</p>
+</div>
+<details class="tool-use"><summary>Minimal smoke test to verify the fixture pattern works before writing the full suite</summary><div class="tool-name">Tool: create_file</div></details>
+<details class="tool-result"><summary>Result from create_file</summary><pre>File created successfully: /home/claude/resume-analyzer/backend/tests/test_smoke.py</pre></details>
+<details class="tool-use"><summary>Run the smoke test and check whether it touched the real dev database file</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1848: in _execute_context\n    return self._exec_single_context(\nvenv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1988: in _exec_single_context\n    self._handle_dbapi_exception(\nvenv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:2365: in _handle_dbapi_exception\n    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e\nvenv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1969: in _exec_single_context\n    self.dialect.do_execute(\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = &lt;sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x7f06369f5a60&gt;\ncursor = &lt;sqlite3.Cursor object at 0x7f0636863840&gt;\nstatement = &#x27;SELECT users.id AS users_id, users.email AS users_email, users.hashed_password AS users_hashed_password, users.created_at AS users_created_at \\nFROM users \\nWHERE users.email = ?\\n LIMIT ? OFFSET ?&#x27;\nparameters = (&#x27;smoke@example.com&#x27;, 1, 0)\ncontext = &lt;sqlalchemy.dialects.sqlite.base.SQLiteExecutionContext object at 0x7f06368672c0&gt;\n\n    def do_execute(self, cursor, statement, parameters, context=None):\n&gt;       cursor.execute(statement, parameters)\nE       sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such table: users\nE       [SQL: SELECT users.id AS users_id, users.email AS users_email, users.hashed_password AS users_hashed_password, users.created_at AS users_created_at \nE       FROM users \nE       WHERE users.email = ?\nE        LIMIT ? OFFSET ?]\nE       [parameters: (&#x27;smoke@example.com&#x27;, 1, 0)]\nE       (Background on this error at: https://sqlalche.me/e/20/e3q8)\n\nvenv/lib/python3.12/site-packages/sqlalchemy/engine/default.py:952: OperationalError\n=============================== warnings summary ===============================\nvenv/lib/python3.12/site-packages/fastapi/testclient.py:1\n  /home/claude/resume-analyzer/backend/venv/lib/python3.12/s
+... (truncated)</pre></details>
+<div class="content-text"><p>Two real issues, both worth fixing properly:</p>
+<ol>
+<li><strong><code>sqlite:///:memory:</code> opens a fresh, separate database per connection</strong> — a well-known SQLAlchemy+SQLite gotcha; needs <code>StaticPool</code> so all connections share the same in-memory DB.</li>
+<li><strong>The real dev database file got touched</strong> (<code>resume_analyzer.db</code>, 49KB) — because <code>main.py</code> calls <code>Base.metadata.create_all()</code> against the real configured engine at <em>module import time</em>, which happens even when testing. This is also just bad practice independent of testing — import-time side effects are a known anti-pattern. Moving it into a proper startup event fixes both problems at once.</li>
+</ol>
+</div>
+<details class="tool-use"><summary>Move table creation from import-time side effect into an explicit startup event -- avoids polluting the real DB file during tests, and is better practice regardless</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/app/main.py</pre></details>
+<div class="content-text"><p>Actually, <code>@app.on_event(&quot;startup&quot;)</code> is deprecated in current FastAPI — let me use the modern <code>lifespan</code> context manager pattern instead, matching the same current-API discipline I've held throughout this build:</p>
+</div>
+<details class="tool-use"><summary>Use the current, non-deprecated lifespan pattern instead of the deprecated on_event startup hook</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/app/main.py</pre></details>
+<details class="tool-use"><summary>Check the full main.py for correct import order</summary><div class="tool-name">Tool: view</div></details>
+<details class="tool-result"><summary>Result from view</summary><pre>     1	from fastapi import FastAPI
+     2	from fastapi.middleware.cors import CORSMiddleware
+     3	
+     4	from contextlib import asynccontextmanager
+     5	
+     6	from app.database import Base, engine
+     7	from app.routers import auth, resume, placement
+     8	
+     9	
+    10	@asynccontextmanager
+    11	async def lifespan(app: FastAPI):
+    12	    Base.metadata.create_all(bind=engine)
+    13	    yield
+    14	
+    15	
+    16	app = FastAPI(title=&quot;AI Resume Analyzer &amp; Placement Preparation System&quot;, lifespan=lifespan)
+    17	
+    18	app.add_middleware(
+    19	    CORSMiddleware,
+    20	    allow_origins=[&quot;http://localhost:3000&quot;],  # Next.js dev server
+    21	    allow_credentials=True,
+    22	    allow_methods=[&quot;*&quot;],
+    23	    allow_headers=[&quot;*&quot;],
+    24	)
+    25	
+    26	app.include_router(auth.router)
+    27	app.include_router(resume.router)
+    28	app.include_router(placement.router)
+    29	
+    30	
+    31	@app.get(&quot;/health&quot;)
+    32	def health():
+    33	    return {&quot;status&quot;: &quot;ok&quot;}
+    34	</pre></details>
+<div class="content-text"><p>Good, correct order. Now fixing the <code>StaticPool</code> issue in the test fixture:</p>
+</div>
+<details class="tool-use"><summary>Use StaticPool so all connections share the same in-memory database -- otherwise each connection gets its own separate, tableless in-memory DB</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/tests/conftest.py</pre></details>
+<div class="content-text"><p>Now re-running the smoke test and confirming the real dev DB is no longer touched:</p>
+</div>
+<details class="tool-use"><summary>Rerun smoke test and confirm both fixes worked</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;\ntests/test_smoke.py::test_health PASSED                                  [ 50%]\ntests/test_smoke.py::test_register_and_login PASSED                      [100%]\n\n=============================== warnings summary ===============================\nvenv/lib/python3.12/site-packages/fastapi/testclient.py:1\n  /home/claude/resume-analyzer/backend/venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.\n    from starlette.testclient import TestClient as TestClient  # noqa\n\nvenv/lib/python3.12/site-packages/starlette/testclient.py:53\n  /home/claude/resume-analyzer/backend/venv/lib/python3.12/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.\n    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]\n\ntests/test_smoke.py::test_register_and_login\ntests/test_smoke.py::test_register_and_login\n  /home/claude/resume-analyzer/backend/venv/lib/python3.12/site-packages/jwt/api_jwt.py:147: InsecureKeyLengthWarning: The HMAC key is 20 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.\n    return self._jws.encode(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n======================== 2 passed, 4 warnings in 0.70s =========================\n=== real dev db file created? ===\n-rw-r--r-- 1 root root 49152 Sep 10 11:26 resume_analyzer.db\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>Two tests pass now, but the dev-DB check is ambiguous (same size/timestamp could mean &quot;created fresh just now&quot; or &quot;leftover from before&quot; — need a cleaner check). Also, a real finding surfaced in the warnings: <strong>the default JWT secret is only 20 bytes, below the recommended 32-byte minimum for HS256</strong>. Let me verify both properly:</p>
+</div>
+<details class="tool-use"><summary>Unambiguous before/after check for the dev DB file</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;=== before test: file exists? ===\nls: cannot access &#x27;resume_analyzer.db&#x27;: No such file or directory\n  /home/claude/resume-analyzer/backend/venv/lib/python3.12/site-packages/jwt/api_jwt.py:147: InsecureKeyLengthWarning: The HMAC key is 20 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.\n    return self._jws.encode(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n2 passed, 4 warnings in 0.69s\n=== after test: file exists? ===\nresume_analyzer.db\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>Real, deeper issue found: the <code>lifespan</code> handler references the module-level <code>engine</code> from <code>app.database</code> <em>directly</em> — not through <code>Depends(get_db)</code> — so my dependency override never touches it, and <code>TestClient</code>'s context manager triggers <code>lifespan</code> for real, hitting the actual configured database. Fixing this properly by patching the module-level engine itself during tests, not just the per-request dependency:</p>
+</div>
+<details class="tool-use"><summary>Patch app.database.engine itself, not just the get_db dependency -- the lifespan handler references the module-level engine directly, which dependency_overrides can&#x27;t reach</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/tests/conftest.py</pre></details>
+<div class="content-text"><p>One more layer to this — <code>main.py</code> did <code>from app.database import Base, engine</code>, which creates a <em>separate</em> name binding in <code>main.py</code>'s own namespace. Patching <code>app.database.engine</code> alone doesn't retroactively change what <code>main.py</code>'s <code>lifespan</code> function actually references. Need to patch both:</p>
+</div>
+<details class="tool-use"><summary>Also patch app.main&#x27;s own &#x27;engine&#x27; binding -- it imported engine via &#x27;from app.database import engine&#x27;, which creates a separate name binding that patching app.database.engine alone doesn&#x27;t reach</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/tests/conftest.py</pre></details>
+<details class="tool-use"><summary>Patch both the database module&#x27;s engine and main&#x27;s own imported binding of it</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/tests/conftest.py</pre></details>
+<div class="content-text"><p>Now re-verifying, with an unambiguous before/after check:</p>
+</div>
+<details class="tool-use"><summary>Re-verify both the tests pass and the real dev DB is untouched</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;  /home/claude/resume-analyzer/backend/venv/lib/python3.12/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.\n    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]\n\ntests/test_smoke.py::test_register_and_login\ntests/test_smoke.py::test_register_and_login\n  /home/claude/resume-analyzer/backend/venv/lib/python3.12/site-packages/jwt/api_jwt.py:147: InsecureKeyLengthWarning: The HMAC key is 20 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.\n    return self._jws.encode(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n2 passed, 4 warnings in 0.69s\n=== dev db file exists after test? ===\nls: cannot access &#x27;resume_analyzer.db&#x27;: No such file or directory\nCONFIRMED: does not exist\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>Full isolation confirmed — dev DB genuinely untouched, tests still pass. Now fixing the JWT secret length finding:</p>
+</div>
+<details class="tool-use"><summary>Confirm the exact current default secret length</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;20\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<details class="tool-use"><summary>Fix default JWT secret to meet the 32-byte minimum for secure HS256 signing (confirmed via a real InsecureKeyLengthWarning from PyJWT during testing)</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/app/config.py</pre></details>
+<details class="tool-use"><summary>Verify the new default is at least 32 bytes</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;43\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>43 bytes, comfortably above the 32-byte minimum. Also strengthening the <code>.env.example</code> guidance:</p>
+</div>
+<details class="tool-use"><summary>Add guidance for generating a proper production JWT secret</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/.env.example</pre></details>
+<div class="content-text"><p>Verifying that suggested command actually works and produces a properly-sized secret:</p>
+</div>
+<details class="tool-use"><summary>Verify the suggested secret-generation command works correctly</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;15e1af9805dc18689023343c39014d75806afbd91ade0439117a945301201d06 64 bytes as hex string, 32 bytes of actual entropy\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>Confirmed correct. Now re-running the smoke test to confirm the warning is actually gone:</p>
+</div>
+<details class="tool-use"><summary>Confirm the InsecureKeyLengthWarning is gone</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;    from starlette.testclient import TestClient as TestClient  # noqa\n\nvenv/lib/python3.12/site-packages/starlette/testclient.py:53\n  /home/claude/resume-analyzer/backend/venv/lib/python3.12/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.\n    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n2 passed, 2 warnings in 0.68s\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>Confirmed gone — only an unrelated library-internal deprecation warning remains. Now building out the full suite, codifying everything verified manually throughout this build:</p>
+</div>
+<details class="tool-use"><summary>Auth test suite</summary><div class="tool-name">Tool: create_file</div></details>
+<details class="tool-result"><summary>Result from create_file</summary><pre>File created successfully: /home/claude/resume-analyzer/backend/tests/test_auth.py</pre></details>
+<details class="tool-use"><summary>Resume analyzer test suite</summary><div class="tool-name">Tool: create_file</div></details>
+<details class="tool-result"><summary>Result from create_file</summary><pre>File created successfully: /home/claude/resume-analyzer/backend/tests/test_resume.py</pre></details>
+<div class="content-text"><p>Now the placement (roadmap + interview) suite — including a dedicated regression test for the phantom-session bug I found and fixed:</p>
+</div>
+<details class="tool-use"><summary>Placement (roadmap + interview) test suite, including a regression test for the phantom-session bug</summary><div class="tool-name">Tool: create_file</div></details>
+<details class="tool-result"><summary>Result from create_file</summary><pre>File created successfully: /home/claude/resume-analyzer/backend/tests/test_placement.py</pre></details>
+<div class="content-text"><p>Now running the complete suite:</p>
+</div>
+<details class="tool-use"><summary>Run the complete test suite</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;    return await dependant.call(**values)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\napp/routers/resume.py:24: in analyze\n    text = extract_text_from_pdf(file_bytes)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\napp/resume_service.py:26: in extract_text_from_pdf\n    reader = PdfReader(io.BytesIO(file_bytes))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nvenv/lib/python3.12/site-packages/pypdf/_reader.py:149: in __init__\n    self._initialize_stream(stream)\nvenv/lib/python3.12/site-packages/pypdf/_reader.py:173: in _initialize_stream\n    self.read(stream)\nvenv/lib/python3.12/site-packages/pypdf/_reader.py:680: in read\n    self._find_eof_marker(stream)\nvenv/lib/python3.12/site-packages/pypdf/_reader.py:793: in _find_eof_marker\n    line = read_previous_line(stream)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nstream = &lt;_io.BytesIO object at 0x7f6df1bab7e0&gt;\n\n    def read_previous_line(stream: StreamType) -&gt; bytes:\n        \&quot;\&quot;\&quot;\n        Given a byte stream with current position X, return the previous line.\n    \n        All characters between the first CR/LF byte found before X\n        (or, the start of the file, if no such byte is found) and position X\n        After this call, the stream will be positioned one byte after the\n        first non-CRLF character found beyond the first CR/LF byte before X,\n        or, if no such byte is found, at the beginning of the stream.\n    \n        Args:\n            stream: StreamType:\n    \n        Returns:\n            The data which was read.\n    \n        \&quot;\&quot;\&quot;\n        line_content = []\n        found_crlf = False\n        if stream.tell() == 0:\n&gt;           raise PdfStreamError(STREAM_TRUNCATED_PREMATURELY)\nE           pypdf.errors.PdfStreamError: Stream has ended unexpectedly\n\nvenv/lib/python3.12/site-packages/pypdf/_utils.py:370: PdfStreamError\n------------------------------ Captured log call
+... (truncated)</pre></details>
+<div class="content-text"><p><strong>This is genuinely valuable</strong> — my test's fake PDF bytes weren't a real valid PDF, and that exposed a real latent bug: <code>pypdf.errors.PdfStreamError</code> (raised on malformed PDF input) isn't caught anywhere in the resume router, which only handles <code>ValueError</code>/<code>RuntimeError</code>. That means <strong>any real user uploading a corrupted or malformed PDF would get an unhandled 500 crash</strong>, not a clean error message. Fixing the actual bug, then fixing my test to use a real valid PDF:</p>
+</div>
+<details class="tool-use"><summary>Catch pypdf&#x27;s own exception class and convert to a clean ValueError, so malformed PDFs get a proper 400 instead of an unhandled 500</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/app/resume_service.py</pre></details>
+<div class="content-text"><p>Let me verify the actual pypdf exception hierarchy before importing a guessed class name — I saw <code>PdfStreamError</code> specifically, but want to catch the right base class to cover malformed-PDF errors generally, not just this one:</p>
+</div>
+<details class="tool-use"><summary>Check the real pypdf exception class hierarchy</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;PdfStreamError bases: [&#x27;PdfStreamError&#x27;, &#x27;PdfReadError&#x27;, &#x27;PyPdfError&#x27;, &#x27;Exception&#x27;, &#x27;BaseException&#x27;, &#x27;object&#x27;]\n\nAvailable exception classes: [&#x27;DependencyError&#x27;, &#x27;DeprecationError&#x27;, &#x27;EmptyFileError&#x27;, &#x27;EmptyImageDataError&#x27;, &#x27;FileNotDecryptedError&#x27;, &#x27;LimitReachedError&#x27;, &#x27;PageSizeNotDefinedError&#x27;, &#x27;ParseError&#x27;, &#x27;PdfReadError&#x27;, &#x27;PdfStreamError&#x27;, &#x27;PyPdfError&#x27;, &#x27;WrongPasswordError&#x27;, &#x27;XmpDocumentError&#x27;]\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p><code>PyPdfError</code> is the library-wide base class — broader coverage than <code>PdfReadError</code> alone (also catches <code>WrongPasswordError</code>, <code>EmptyFileError</code>, etc. for other malformed/protected PDF scenarios). Using that instead for more defensive coverage:</p>
+</div>
+<details class="tool-use"><summary>Use the library-wide base exception class for broader coverage of malformed/protected PDF scenarios, not just stream errors</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/app/resume_service.py</pre></details>
+<details class="tool-use"><summary>Check current resume_service.py structure for correct import placement</summary><div class="tool-name">Tool: view</div></details>
+<details class="tool-result"><summary>Result from view</summary><pre>     1	import json
+     2	
+     3	from google import genai
+     4	from google.genai import types
+     5	from pypdf import PdfReader
+     6	
+     7	from app.config import settings
+     8	
+     9	_client = None
+    10	
+    11	
+    12	def get_client() -&gt; genai.Client:
+    13	    global _client
+    14	    if _client is None:
+    15	        if not settings.gemini_api_key:
+    16	            raise RuntimeError(
+    17	                &quot;GEMINI_API_KEY is not set. Add it to your .env file -- &quot;
+    18	                &quot;see README for how to get one.&quot;
+    19	            )
+    20	        _client = genai.Client(api_key=settings.gemini_api_key)
+    21	    return _client
+    22	
+    23	
+    24	from pypdf.errors import PyPdfError
+    25	
+    26	
+    27	def extract_text_from_pdf(file_bytes: bytes) -&gt; str:
+    28	    import io
+    29	    try:
+    30	        reader = PdfReader(io.BytesIO(file_bytes))
+    31	        text_parts = [page.extract_text() or &quot;&quot; for page in reader.pages]
+    32	    except PyPdfError as e:
+    33	        raise ValueError(f&quot;Couldn&#x27;t read this PDF -- it may be corrupted, malformed, or password-protected: {e}&quot;)
+    34	    return &quot;\n&quot;.join(text_parts).strip()
+    35	
+    36	
+    37	ANALYSIS_PROMPT = &quot;&quot;&quot;You are an ATS (Applicant Tracking System) resume reviewer.
+    38	Given the resume text below, respond with ONLY a JSON object with exactly
+    39	these fields:
+    40	
+    41	- &quot;ats_score&quot;: a number from 0 to 100 estimating how well this resume would
+    42	  pass automated ATS screening
+    43	- &quot;feedback&quot;: a short paragraph (3-5 sentences) with concrete, specific
+    44	  section-by-section improvement suggestions
+    45	- &quot;identified_skills&quot;: an array of skill strings found in the resume
+    46	  (e.g. [&quot;Python&quot;, &quot;React&quot;, &quot;SQL&quot;])
+    47	- &quot;suggested_roles&quot;: an array of 2-4 job title strings this resume is a
+    48	  reasonable fit for (e.g. [&quot;Backend Developer&quot;, &quot;ML Engineer&quot;])
+    49	
+    50	Resume text:
+    51	---
+    52	{resume_text}
+    53	---
+    54	&quot;&quot;&quot;
+   
+... (truncated)</pre></details>
+<div class="content-text"><p>Let me clean up the import placement:</p>
+</div>
+<details class="tool-use"><summary>Move import to the top with the rest, remove mid-file placement</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/app/resume_service.py</pre></details>
+<details class="tool-use"><summary>Remove the now-duplicate mid-file import</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/app/resume_service.py</pre></details>
+<div class="content-text"><p>Now let's fix my test to use a genuinely valid PDF (reusing the <code>reportlab</code> approach from earlier), and add a <em>new</em> test specifically for the malformed-PDF case I just fixed:</p>
+</div>
+<details class="tool-use"><summary>Install reportlab for generating real test PDFs</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<details class="tool-use"><summary>Add a real valid PDF fixture, fix the API-key test to use it, add a new test for the malformed-PDF fix</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/tests/test_resume.py</pre></details>
+<div class="content-text"><p>Now rerunning the complete suite:</p>
+</div>
+<details class="tool-use"><summary>Run the full suite with the fixes applied</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;tests/test_auth.py::test_register PASSED                                 [  3%]\ntests/test_auth.py::test_duplicate_registration_rejected PASSED          [  7%]\ntests/test_auth.py::test_login_success PASSED                            [ 11%]\ntests/test_auth.py::test_login_wrong_password_rejected PASSED            [ 14%]\ntests/test_auth.py::test_login_nonexistent_user_rejected PASSED          [ 18%]\ntests/test_auth.py::test_protected_route_requires_auth PASSED            [ 22%]\ntests/test_auth.py::test_protected_route_with_valid_token PASSED         [ 25%]\ntests/test_placement.py::test_roadmap_requires_auth PASSED               [ 29%]\ntests/test_placement.py::test_roadmap_rejects_empty_role PASSED          [ 33%]\ntests/test_placement.py::test_roadmap_fails_gracefully_without_api_key PASSED [ 37%]\ntests/test_placement.py::test_roadmap_history_empty_state PASSED         [ 40%]\ntests/test_placement.py::test_interview_start_requires_auth PASSED       [ 44%]\ntests/test_placement.py::test_interview_start_rejects_empty_role PASSED  [ 48%]\ntests/test_placement.py::test_interview_start_fails_gracefully_without_api_key PASSED [ 51%]\ntests/test_placement.py::test_failed_interview_start_leaves_no_phantom_session PASSED [ 55%]\ntests/test_placement.py::test_respond_to_nonexistent_session PASSED      [ 59%]\ntests/test_placement.py::test_transcript_for_nonexistent_session PASSED  [ 62%]\ntests/test_placement.py::test_interview_history_empty_state PASSED       [ 66%]\ntests/test_placement.py::test_respond_requires_nonempty_answer PASSED    [ 70%]\ntests/test_resume.py::test_analyze_requires_auth PASSED                  [ 74%]\ntests/test_resume.py::test_analyze_rejects_non_pdf PASSED                [ 77%]\ntests/test_resume.py::test_analyze_rejects_malformed_pdf PASSED          [ 81%]\ntests/test_resume.py::test_analyze_fails_gracefully_without_api_key PASSED [ 85%]\ntests/test_resume.py::test_analytics_empty_state PASSED                  [ 88%
+... (truncated)</pre></details>
+<div class="content-text"><p>All 27 tests pass — clean run, real isolation, zero pollution of the dev database. Let me clean up the test artifacts and present everything:</p>
+</div>
+<details class="tool-use"><summary>Prepare distinctly-named copies for presentation</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<details class="tool-use"><summary>Presenting file(s)...</summary><div class="tool-name">Tool: present_files</div></details>
+<details class="tool-result"><summary>Result from present_files</summary><pre>Files copied:
+Copied /home/claude/resume-analyzer/app_main2.py to /mnt/user-data/outputs/app_main2.py
+Copied /home/claude/resume-analyzer/app_config.py to /mnt/user-data/outputs/app_config.py
+Copied /home/claude/resume-analyzer/app_resume_service2.py to /mnt/user-data/outputs/app_resume_service2.py
+Copied /home/claude/resume-analyzer/tests_conftest.py to /mnt/user-data/outputs/tests_conftest.py
+Copied /home/claude/resume-analyzer/tests_test_smoke.py to /mnt/user-data/outputs/tests_test_smoke.py
+Copied /home/claude/resume-analyzer/tests_test_auth.py to /mnt/user-data/outputs/tests_test_auth.py
+Copied /home/claude/resume-analyzer/tests_test_resume.py to /mnt/user-data/outputs/tests_test_resume.py
+Copied /home/claude/resume-analyzer/tests_test_placement.py to /mnt/user-data/outputs/tests_test_placement.py
+Copied /home/claude/resume-analyzer/requirements_dev.txt to /mnt/user-data/outputs/requirements_dev.txt
+Copied /home/claude/resume-analyzer/env_example to /mnt/user-data/outputs/env_example</pre></details>
+<details class="tool-use"><summary>Updating memory</summary><div class="tool-name">Tool: memory_str_replace</div></details>
+<details class="tool-result"><summary>Result from memory_str_replace</summary><pre>Edited: replaced 207 bytes with 415 bytes, file is now 1531 of 49152 bytes. [version: e891e1bba780] (pass as if_version on your next edit of this path)</pre></details>
+<div class="content-text"><h2>Summary</h2>
+<p>Built a real <code>pytest</code> suite (27 tests, <code>backend/tests/</code>) that formalizes everything I'd been manually <code>curl</code>-testing throughout this build — and in the process of writing it properly, it immediately caught <strong>two genuine bugs that manual testing had missed</strong>:</p>
+<ol>
+<li><strong>Unhandled crash on malformed PDF upload.</strong> A real (not fake) invalid PDF byte string exposed that <code>pypdf.errors.PdfStreamError</code> wasn't caught anywhere — any real user uploading a corrupted or malformed PDF would've gotten an unhandled 500 instead of a clean error. Fixed by catching pypdf's library-wide <code>PyPdfError</code> base class and converting it to the app's existing graceful-error pattern.</li>
+<li><strong>JWT secret below the secure minimum.</strong> PyJWT's own <code>InsecureKeyLengthWarning</code> fired during testing — the default <code>jwt_secret</code> was 20 bytes, below the 32-byte minimum recommended for HS256. Fixed the default and added a <code>secrets.token_hex(32)</code> generation command to <code>.env.example</code>, verified to actually work.</li>
+</ol>
+<p>Also fixed a genuine test-isolation issue along the way: <code>main.py</code>'s table-creation was an import-time side effect against the <em>real</em> configured database engine — meaning even running tests was silently touching the actual dev DB file. Moved it into a proper <code>lifespan</code> context manager (also fixing use of the now-deprecated <code>@app.on_event</code>), and had to patch the engine reference in <em>two</em> places (<code>app.database</code> and <code>app.main</code>'s separate import binding) to fully isolate tests — a subtlety that would've been easy to miss and declare &quot;done&quot; prematurely.</p>
+<p>File placement: <code>conftest.py</code>/<code>test_*.py</code> go in <code>backend/tests/</code>; <code>requirements_dev.txt</code> → <code>backend/requirements-dev.txt</code>; <code>env_example</code> → <code>backend/.env.example</code>; the rest go where their names indicate under <code>backend/app/</code>.</p>
+<p>The suite includes a dedicated regression test locking in the earlier phantom-session fix, so if anyone ever reintroduces that bug, it fails loudly rather than silently.</p>
 </div>
 </div>
 </div>

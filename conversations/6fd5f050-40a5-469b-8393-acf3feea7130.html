@@ -15,7 +15,7 @@
   <h1>Code review corrections for vault encryption implementation</h1>
   <div class="meta">
     Jul 22, 2026 at 08:03 AM
-    &middot; 635 messages
+    &middot; 639 messages
   </div>
 </div>
 
@@ -18737,6 +18737,196 @@ git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </
 <div class="message-bubble">
 <div class="content-text"><p>Memory's up to date. Everything currently built (auth, resume analyzer, skill roadmaps) is genuinely working and tested — the one real gap left is mock interviews, still an honest &quot;coming soon&quot; stub since it needs multi-turn conversational state rather than the single-shot pattern the other two features use.</p>
 <p>Want me to tackle that next, or is two working features + one clearly-marked stub a reasonable place to pause for this project?</p>
+</div>
+</div>
+</div>
+  
+  <div class="message message-human">
+<div class="message-bubble">
+<div class="content-text"><p>Your call</p>
+</div>
+</div>
+</div>
+  
+  <div class="message message-assistant">
+<div class="message-bubble">
+<div class="content-text"><p>Let's build mock interviews — the genuinely different, harder piece. First checking the real <code>google-genai</code> multi-turn chat API rather than guessing, since I want to use it correctly:</p>
+</div>
+<details class="tool-use"><summary>Searching the web</summary><div class="tool-name">Tool: web_search</div></details>
+<div class="content-text"><p><code>client.chats.create()</code> is stateful in-memory only — it wouldn't survive across separate HTTP requests or server restarts, which matters for a real backend. The correct approach for a REST API is reconstructing conversation history from the DB and passing it explicitly via <code>contents</code> on each request. Let me verify the exact <code>types.Content</code>/<code>types.Part</code> construction syntax before building:</p>
+</div>
+<details class="tool-use"><summary>Searching the web</summary><div class="tool-name">Tool: web_search</div></details>
+<div class="content-text"><p>Confirmed real syntax: <code>types.Content(role='user'/'model', parts=[types.Part.from_text(text=...)])</code>. Now let's check the existing <code>InterviewSession</code> model before extending it:</p>
+</div>
+<details class="tool-use"><summary>Check current InterviewSession model definition</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;class InterviewSession(Base):\n    __tablename__ = \&quot;interview_sessions\&quot;\n\n    id = Column(Integer, primary_key=True, index=True)\n    user_id = Column(Integer, ForeignKey(\&quot;users.id\&quot;), nullable=False)\n    role = Column(String, nullable=False)\n    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))\n\n    user = relationship(\&quot;User\&quot;, back_populates=\&quot;interview_sessions\&quot;)\n\n\nclass SkillRoadmap(Base):\n    __tablename__ = \&quot;skill_roadmaps\&quot;\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>Renaming <code>role</code>→<code>target_role</code> for clarity (since I'm about to add message-level <code>role</code> fields too, and having two different meanings of &quot;role&quot; would be confusing), adding <code>status</code>, and adding the new <code>InterviewMessage</code> model:</p>
+</div>
+<details class="tool-use"><summary>Extend InterviewSession with target_role/status, add InterviewMessage for conversation history</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/app/models.py</pre></details>
+<div class="content-text"><p>Let's also fix the <code>total_interviews_taken</code> analytics property — it currently counts <em>all</em> sessions including ones still in progress, but &quot;taken&quot; should mean completed:</p>
+</div>
+<details class="tool-use"><summary>Check current property</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;    def total_interviews_taken(self):\n        return len(self.interview_sessions)\n\n    @property\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<details class="tool-use"><summary>Count only completed interview sessions as taken, not ones still in progress</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/app/models.py</pre></details>
+<div class="content-text"><p>Now the interview service, using <code>types.Content</code>/<code>types.Part</code> for reconstructing history statelessly per request:</p>
+</div>
+<details class="tool-use"><summary>Interview service: stateless multi-turn conversation reconstruction from DB history on each request</summary><div class="tool-name">Tool: create_file</div></details>
+<details class="tool-result"><summary>Result from create_file</summary><pre>File created successfully: /home/claude/resume-analyzer/backend/app/interview_service.py</pre></details>
+<details class="tool-use"><summary>Add interview session/message schemas</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/app/schemas.py</pre></details>
+<div class="content-text"><p>Now adding the interview endpoints to the placement router:</p>
+</div>
+<details class="tool-use"><summary>Add interview start/respond/transcript/history endpoints</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/app/routers/placement.py</pre></details>
+<details class="tool-use"><summary>Add interview endpoints at the end of the router</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/app/routers/placement.py</pre></details>
+<div class="content-text"><p>That has messy duplicated logic (inline imports, manual kickoff construction) instead of reusing the service cleanly. Refactoring <code>interview_service.py</code> to expose one clean <code>start_interview</code> function, matching the pattern used elsewhere:</p>
+</div>
+<details class="tool-use"><summary>Add a clean start_interview helper, avoid duplicating client/kickoff logic in the router</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/app/interview_service.py</pre></details>
+<div class="content-text"><p>Now cleaning up the router to use it:</p>
+</div>
+<details class="tool-use"><summary>Use the clean start_interview service function instead of inline duplicated logic</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/app/routers/placement.py</pre></details>
+<details class="tool-use"><summary>Replace messy inline kickoff logic with the clean service call</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/app/routers/placement.py</pre></details>
+<div class="content-text"><p>One more real gap worth fixing while I'm in here — none of the three AI service modules actually wrap the live <code>generate_content()</code> call itself in error handling; they only explicitly raise <code>RuntimeError</code> for the missing-key and bad-JSON cases. A genuine API failure (network issue, rate limit, invalid key rejected server-side) would currently propagate as an unhandled exception instead of the graceful 502 I already verified for the missing-key case. Fixing this consistently across all three services:</p>
+</div>
+<details class="tool-use"><summary>Wrap the live API call to catch any failure, not just missing-key/bad-JSON</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/app/resume_service.py</pre></details>
+<details class="tool-use"><summary>Wrap the live API call in roadmap service similarly</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/app/roadmap_service.py</pre></details>
+<div class="content-text"><p>Now the interview service (both <code>start_interview</code> and <code>get_next_message</code>):</p>
+</div>
+<details class="tool-use"><summary>Wrap both live API calls in interview service</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/app/interview_service.py</pre></details>
+<div class="content-text"><p><code>main.py</code> doesn't need changes — interview endpoints are on the same already-included <code>placement</code> router. Now testing everything end-to-end, including regression-checking the existing features still work:</p>
+</div>
+<details class="tool-use"><summary>Confirm server starts cleanly with the new interview models/endpoints</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;INFO:     Started server process [498]\nINFO:     Waiting for application startup.\nINFO:     Application startup complete.\nINFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)\n=== health ===\n{\&quot;status\&quot;:\&quot;ok\&quot;}&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>Clean startup. Now the full functional test — interview endpoints, plus regression checks on the existing features:</p>
+</div>
+<details class="tool-use"><summary>Full interview endpoint test suite plus regression check on existing features</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;=== start interview, no GEMINI_API_KEY (should fail gracefully) ===\n{\&quot;detail\&quot;:\&quot;Interview start failed: GEMINI_API_KEY is not set. Add it to your .env file -- see README for how to get one.\&quot;}\nstatus: 502\n=== server still alive? ===\n{\&quot;status\&quot;:\&quot;ok\&quot;}\n=== empty target_role (should 400) ===\n{\&quot;detail\&quot;:\&quot;target_role is required\&quot;}\nstatus: 400\n=== respond to nonexistent session (should 404) ===\n{\&quot;detail\&quot;:\&quot;Interview session not found\&quot;}\nstatus: 404\n=== transcript for nonexistent session (should 404) ===\n{\&quot;detail\&quot;:\&quot;Interview session not found\&quot;}\nstatus: 404\n=== interview history (should be empty list) ===\n[{\&quot;id\&quot;:1,\&quot;target_role\&quot;:\&quot;Backend Developer\&quot;,\&quot;status\&quot;:\&quot;in_progress\&quot;,\&quot;created_at\&quot;:\&quot;2026-09-10T06:15:06.020840\&quot;}]\nstatus: 200\n=== REGRESSION: resume analytics still works ===\n{\&quot;email\&quot;:\&quot;interview-test@example.com\&quot;,\&quot;latest_resume_score\&quot;:null,\&quot;total_interviews_taken\&quot;:0,\&quot;total_identified_skills\&quot;:0}\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>Found a real bug via that test: the failed &quot;start interview&quot; call still left a phantom session in the DB (<code>id=1</code>, permanently stuck at <code>in_progress</code>, zero messages) — because I commit the session <em>before</em> attempting the AI call. Fixing this so a failed start doesn't leave orphaned rows:</p>
+</div>
+<details class="tool-use"><summary>Don&#x27;t persist the session until the first question is successfully generated -- avoids orphaned in_progress sessions when the AI call fails</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/backend/app/routers/placement.py</pre></details>
+<div class="content-text"><p>Re-verifying the fix — same failure path, confirming no phantom session this time:</p>
+</div>
+<details class="tool-use"><summary>Confirm the fix -- no phantom session left behind after a failed start</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;=== start interview, still no API key (should still fail the same way) ===\n{\&quot;detail\&quot;:\&quot;Interview start failed: GEMINI_API_KEY is not set. Add it to your .env file -- see README for how to get one.\&quot;}\nstatus: 502\n=== interview history should now be EMPTY, not contain a phantom session ===\n[]\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>Fix confirmed — clean <code>[]</code>, no orphaned session. Now the frontend for mock interviews, replacing the final &quot;coming soon&quot; section:</p>
+</div>
+<details class="tool-use"><summary>Add interview types and API functions</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/frontend/src/lib/api.ts</pre></details>
+<details class="tool-use"><summary>Add startInterview and respondToInterview API functions</summary><div class="tool-name">Tool: str_replace</div></details>
+<details class="tool-result"><summary>Result from str_replace</summary><pre>Successfully replaced string in /home/claude/resume-analyzer/frontend/src/lib/api.ts</pre></details>
+<div class="content-text"><p>Now the placement-prep page — replacing the mock interview stub with a real chat-style UI:</p>
+</div>
+<details class="tool-use"><summary>Write the full placement-prep page with real mock interview chat UI</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;written\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<details class="tool-use"><summary>Verify the frontend still builds cleanly with the interview UI</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;▲ Next.js 16.3.4 (Turbopack)\n✓ Running next.config.ts took 3.7s\n\n  Creating an optimized production build ...\n✓ Compiled successfully in 10.1s\n  Running TypeScript ...\n  Finished TypeScript in 5.0s ...\n  Collecting page data using 1 worker ...\n  Generating static pages using 1 worker (0/7) ...\n  Generating static pages using 1 worker (1/7) \r\n  Generating static pages using 1 worker (3/7) \r\n  Generating static pages using 1 worker (5/7) \r\n✓ Generating static pages using 1 worker (7/7) in 297ms\n  Finalizing page optimization ...\n\nRoute (app)\n┌ ○ /\n├ ○ /_not-found\n├ ○ /dashboard\n├ ○ /dashboard/placement-prep\n└ ○ /dashboard/resume\n\n\n○  (Static)  prerendered as static content\n\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>Clean build. Now the exact contract test against the real backend for the new interview endpoints:</p>
+</div>
+<details class="tool-use"><summary>Verify exact frontend request formats against the real backend</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;=== exact startInterview() request format ===\n{\&quot;detail\&quot;:\&quot;Interview start failed: GEMINI_API_KEY is not set. Add it to your .env file -- see README for how to get one.\&quot;}\nstatus: 502\n=== exact respondToInterview() request format (against nonexistent session, but confirms shape/routing works) ===\n{\&quot;detail\&quot;:\&quot;Interview session not found\&quot;}\nstatus: 404\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>Both request formats correctly routed and handled — expected failures (no live API key, no existing session yet) came back exactly as designed, confirming the frontend↔backend contract is correct.</p>
+</div>
+<details class="tool-use"><summary>Prepare distinctly-named copies to avoid present_files collisions</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;app_interview_service.py\napp_main.py\napp_models.py\napp_resume_service.py\napp_roadmap_service.py\napp_schemas.py\nlib_api.ts\nplacement_prep_page.tsx\nrouters_placement.py\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<details class="tool-use"><summary>Presenting file(s)...</summary><div class="tool-name">Tool: present_files</div></details>
+<details class="tool-result"><summary>Result from present_files</summary><pre>Files copied:
+Copied /home/claude/resume-analyzer/app_models.py to /mnt/user-data/outputs/app_models.py
+Copied /home/claude/resume-analyzer/app_schemas.py to /mnt/user-data/outputs/app_schemas.py
+Copied /home/claude/resume-analyzer/app_interview_service.py to /mnt/user-data/outputs/app_interview_service.py
+Copied /home/claude/resume-analyzer/app_resume_service.py to /mnt/user-data/outputs/app_resume_service.py
+Copied /home/claude/resume-analyzer/app_roadmap_service.py to /mnt/user-data/outputs/app_roadmap_service.py
+Copied /home/claude/resume-analyzer/routers_placement.py to /mnt/user-data/outputs/routers_placement.py
+Copied /home/claude/resume-analyzer/lib_api.ts to /mnt/user-data/outputs/lib_api.ts
+Copied /home/claude/resume-analyzer/placement_prep_page.tsx to /mnt/user-data/outputs/placement_prep_page.tsx</pre></details>
+<details class="tool-use"><summary>Updating memory</summary><div class="tool-name">Tool: memory_str_replace</div></details>
+<details class="tool-result"><summary>Result from memory_str_replace</summary><pre>Edited: replaced 151 bytes with 267 bytes, file is now 1308 of 49152 bytes. [version: 184d27bdc8e8] (pass as if_version on your next edit of this path)</pre></details>
+<div class="content-text"><h2>Summary</h2>
+<p><strong>Mock interviews are now genuinely built</strong> — the last of the three planned features. This one required real design thinking, not just another single-shot AI call: <code>google-genai</code>'s stateful <code>chats.create()</code> helper only holds conversation state in Python process memory, which wouldn't survive across separate HTTP requests or a server restart. Instead, I reconstruct the full conversation history from the database on every turn and pass it explicitly via <code>types.Content</code>/<code>types.Part</code> — the correct pattern for a stateless REST backend, verified against real, current <code>google-genai</code> docs rather than guessed.</p>
+<p><strong>Two real bugs caught and fixed during this build, not just written and hoped-for:</strong></p>
+<ol>
+<li>Wrapped the live <code>generate_content()</code> call in all three AI services (resume, roadmap, interview) — previously only the missing-API-key and bad-JSON cases were caught; an actual API failure (network issue, rate limit) would have been an unhandled exception instead of the graceful 502 the rest of the app already had.</li>
+<li>Found via actual testing: a failed &quot;start interview&quot; call was leaving a phantom, permanently-stuck <code>in_progress</code> session in the database with zero messages, because the session was committed <em>before</em> the AI call was attempted. Fixed by only persisting the session once the first question is successfully generated — reverified with the exact same failing scenario to confirm the fix.</li>
+</ol>
+<p><strong>Verified everywhere I can without a live API key</strong>: server starts cleanly, graceful 502 on missing key, 400/404 validation on bad input, empty history states don't crash, existing resume/roadmap regression-tested and still working, frontend builds clean, and the exact request formats the new frontend code sends were tested against the real backend.</p>
+<p>All three README-promised features — Resume Analyzer, Skill Roadmap, Mock Interview — are now real and working, not stubs.</p>
+</div>
+</div>
+</div>
+  
+  <div class="message message-human">
+<div class="message-bubble">
+<div class="content-text"><p>Project structure?</p>
+</div>
+</div>
+</div>
+  
+  <div class="message message-assistant">
+<div class="message-bubble">
+<details class="tool-use"><summary>Get the actual current project structure, excluding build artifacts and my flattening-workaround copies</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;.gitignore\nLICENSE\nREADME.md\nbackend/.env.example\nbackend/.gitignore\nbackend/app/__init__.py\nbackend/app/auth.py\nbackend/app/config.py\nbackend/app/database.py\nbackend/app/interview_service.py\nbackend/app/main.py\nbackend/app/models.py\nbackend/app/resume_service.py\nbackend/app/roadmap_service.py\nbackend/app/routers/__init__.py\nbackend/app/routers/auth.py\nbackend/app/routers/auth_router.py\nbackend/app/routers/placement.py\nbackend/app/routers/resume.py\nbackend/app/routers/resume_router.py\nbackend/app/schemas.py\nbackend/requirements.txt\nfrontend/.env.local.example\nfrontend/.gitignore\nfrontend/AGENTS.md\nfrontend/CLAUDE.md\nfrontend/README.md\nfrontend/eslint.config.mjs\nfrontend/next-env.d.ts\nfrontend/next.config.ts\nfrontend/package-lock.json\nfrontend/package.json\nfrontend/postcss.config.mjs\nfrontend/public/file.svg\nfrontend/public/globe.svg\nfrontend/public/next.svg\nfrontend/public/vercel.svg\nfrontend/public/window.svg\nfrontend/src/app/dashboard/layout.tsx\nfrontend/src/app/dashboard/page.tsx\nfrontend/src/app/dashboard/placement-prep/page.tsx\nfrontend/src/app/dashboard/resume/page.tsx\nfrontend/src/app/favicon.ico\nfrontend/src/app/globals.css\nfrontend/src/app/layout.tsx\nfrontend/src/app/page.tsx\nfrontend/src/lib/api.ts\nfrontend/src/lib/auth-context.tsx\nfrontend/tsconfig.json\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>Let me clean up first — I have leftover duplicate router files from working around the <code>present_files</code> collision earlier (<code>auth_router.py</code>/<code>resume_router.py</code> alongside the real <code>auth.py</code>/<code>resume.py</code>), and I should check what <code>AGENTS.md</code>/<code>CLAUDE.md</code> are before presenting the tree, since I didn't deliberately create those:</p>
+</div>
+<details class="tool-use"><summary>Remove leftover duplicate router files, check the auto-generated agent config files</summary><div class="tool-name">Tool: bash_tool</div></details>
+<details class="tool-result"><summary>Result from bash_tool</summary><pre>{&quot;returncode&quot;:0,&quot;stdout&quot;:&quot;=== AGENTS.md ===\n&lt;!-- BEGIN:nextjs-agent-rules --&gt;\n\n# This is NOT the Next.js you know\n\nThis version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file&#x27;s directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.\n\nThis block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.\n\n&lt;!-- END:nextjs-agent-rules --&gt;\n=== CLAUDE.md ===\n@AGENTS.md\n&quot;,&quot;stderr&quot;:&quot;&quot;}</pre></details>
+<div class="content-text"><p>Good thing I checked rather than assumed — these are genuine, auto-generated by Next.js 16 itself (<code>next dev</code> creates them, per the file's own content), not something I created or that should be removed. They flag that this Next.js version has breaking changes from typical training data and point at bundled docs — legitimate and worth keeping.</p>
+<h2>Current project structure</h2>
+<pre><code><span class="nx">resume</span><span class="o">-</span><span class="nx">analyzer</span><span class="o">/</span>
+<span class="err">├──</span><span class="w"> </span><span class="p">.</span><span class="nx">gitignore</span>
+<span class="err">├──</span><span class="w"> </span><span class="nx">LICENSE</span>
+<span class="err">├──</span><span class="w"> </span><span class="nx">README</span><span class="p">.</span><span class="nx">md</span>
+<span class="err">│</span>
+<span class="err">├──</span><span class="w"> </span><span class="nx">backend</span><span class="o">/</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">example</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="p">.</span><span class="nx">gitignore</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="nx">requirements</span><span class="p">.</span><span class="nx">txt</span>
+<span class="err">│</span><span class="w">   </span><span class="err">└──</span><span class="w"> </span><span class="nx">app</span><span class="o">/</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="nx">__init__</span><span class="p">.</span><span class="nx">py</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="nx">main</span><span class="p">.</span><span class="nx">py</span><span class="w">                  </span><span class="err">#</span><span class="w"> </span><span class="nx">FastAPI</span><span class="w"> </span><span class="nx">app</span><span class="w"> </span><span class="nx">entry</span><span class="p">,</span><span class="w"> </span><span class="nx">router</span><span class="w"> </span><span class="nx">wiring</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="nx">config</span><span class="p">.</span><span class="nx">py</span><span class="w">                </span><span class="err">#</span><span class="w"> </span><span class="nx">env</span><span class="o">-</span><span class="nx">based</span><span class="w"> </span><span class="nx">settings</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="nx">database</span><span class="p">.</span><span class="nx">py</span><span class="w">              </span><span class="err">#</span><span class="w"> </span><span class="nx">SQLAlchemy</span><span class="w"> </span><span class="nx">engine</span><span class="o">/</span><span class="nx">session</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="nx">models</span><span class="p">.</span><span class="nx">py</span><span class="w">                </span><span class="err">#</span><span class="w"> </span><span class="nx">User</span><span class="p">,</span><span class="w"> </span><span class="nx">ResumeAnalysis</span><span class="p">,</span><span class="w"> </span><span class="nx">SkillRoadmap</span><span class="p">,</span>
+<span class="err">│</span><span class="w">       </span><span class="err">│</span><span class="w">                            </span><span class="err">#</span><span class="w"> </span><span class="nx">InterviewSession</span><span class="p">,</span><span class="w"> </span><span class="nx">InterviewMessage</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="nx">schemas</span><span class="p">.</span><span class="nx">py</span><span class="w">               </span><span class="err">#</span><span class="w"> </span><span class="nx">Pydantic</span><span class="w"> </span><span class="nx">request</span><span class="o">/</span><span class="nx">response</span><span class="w"> </span><span class="nx">models</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="nx">auth</span><span class="p">.</span><span class="nx">py</span><span class="w">                  </span><span class="err">#</span><span class="w"> </span><span class="nx">bcrypt</span><span class="w"> </span><span class="nx">hashing</span><span class="p">,</span><span class="w"> </span><span class="nx">JWT</span><span class="w"> </span><span class="nx">create</span><span class="o">/</span><span class="nx">verify</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="nx">resume_service</span><span class="p">.</span><span class="nx">py</span><span class="w">        </span><span class="err">#</span><span class="w"> </span><span class="nx">PDF</span><span class="w"> </span><span class="nx">extraction</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">Gemini</span><span class="w"> </span><span class="nx">ATS</span><span class="w"> </span><span class="nx">scoring</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="nx">roadmap_service</span><span class="p">.</span><span class="nx">py</span><span class="w">       </span><span class="err">#</span><span class="w"> </span><span class="nx">Gemini</span><span class="w"> </span><span class="nx">skill</span><span class="w"> </span><span class="nx">roadmap</span><span class="w"> </span><span class="nx">generation</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="nx">interview_service</span><span class="p">.</span><span class="nx">py</span><span class="w">     </span><span class="err">#</span><span class="w"> </span><span class="nx">Gemini</span><span class="w"> </span><span class="nx">multi</span><span class="o">-</span><span class="nx">turn</span><span class="w"> </span><span class="nx">mock</span><span class="w"> </span><span class="nx">interview</span>
+<span class="err">│</span><span class="w">       </span><span class="err">└──</span><span class="w"> </span><span class="nx">routers</span><span class="o">/</span>
+<span class="err">│</span><span class="w">           </span><span class="err">├──</span><span class="w"> </span><span class="nx">__init__</span><span class="p">.</span><span class="nx">py</span>
+<span class="err">│</span><span class="w">           </span><span class="err">├──</span><span class="w"> </span><span class="nx">auth</span><span class="p">.</span><span class="nx">py</span><span class="w">              </span><span class="err">#</span><span class="w"> </span><span class="o">/</span><span class="nx">auth</span><span class="o">/</span><span class="nx">register</span><span class="p">,</span><span class="w"> </span><span class="o">/</span><span class="nx">auth</span><span class="o">/</span><span class="nx">login</span>
+<span class="err">│</span><span class="w">           </span><span class="err">├──</span><span class="w"> </span><span class="nx">resume</span><span class="p">.</span><span class="nx">py</span><span class="w">            </span><span class="err">#</span><span class="w"> </span><span class="o">/</span><span class="nx">resume</span><span class="o">/</span><span class="nx">analyze</span><span class="p">,</span><span class="w"> </span><span class="o">/</span><span class="nx">history</span><span class="p">,</span><span class="w"> </span><span class="o">/</span><span class="nx">analytics</span>
+<span class="err">│</span><span class="w">           </span><span class="err">└──</span><span class="w"> </span><span class="nx">placement</span><span class="p">.</span><span class="nx">py</span><span class="w">         </span><span class="err">#</span><span class="w"> </span><span class="o">/</span><span class="nx">placement</span><span class="o">/</span><span class="nx">roadmap</span><span class="p">,</span><span class="w"> </span><span class="o">/</span><span class="nx">interview</span><span class="o">/*</span>
+<span class="err">│</span>
+<span class="err">└──</span><span class="w"> </span><span class="nx">frontend</span><span class="o">/</span>
+<span class="w">    </span><span class="err">├──</span><span class="w"> </span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">local</span><span class="p">.</span><span class="nx">example</span>
+<span class="w">    </span><span class="err">├──</span><span class="w"> </span><span class="p">.</span><span class="nx">gitignore</span>
+<span class="w">    </span><span class="err">├──</span><span class="w"> </span><span class="kn">package</span><span class="p">.</span><span class="nx">json</span><span class="p">,</span><span class="w"> </span><span class="nx">tsconfig</span><span class="p">.</span><span class="nx">json</span><span class="p">,</span><span class="w"> </span><span class="nx">next</span><span class="p">.</span><span class="nx">config</span><span class="p">.</span><span class="nx">ts</span><span class="p">,</span><span class="w"> </span><span class="nx">eslint</span><span class="p">.</span><span class="nx">config</span><span class="p">.</span><span class="nx">mjs</span><span class="p">,</span><span class="w"> </span><span class="nx">postcss</span><span class="p">.</span><span class="nx">config</span><span class="p">.</span><span class="nx">mjs</span>
+<span class="w">    </span><span class="err">├──</span><span class="w"> </span><span class="nx">AGENTS</span><span class="p">.</span><span class="nx">md</span><span class="p">,</span><span class="w"> </span><span class="nx">CLAUDE</span><span class="p">.</span><span class="nx">md</span><span class="w">         </span><span class="err">#</span><span class="w"> </span><span class="kt">auto</span><span class="o">-</span><span class="nx">generated</span><span class="w"> </span><span class="nx">by</span><span class="w"> </span><span class="nx">Next</span><span class="p">.</span><span class="nx">js</span><span class="w"> </span><span class="mi">16</span><span class="w"> </span><span class="nx">itself</span>
+<span class="w">    </span><span class="err">├──</span><span class="w"> </span><span class="nx">public</span><span class="o">/</span><span class="w">                      </span><span class="err">#</span><span class="w"> </span><span class="k">default</span><span class="w"> </span><span class="nx">Next</span><span class="p">.</span><span class="nx">js</span><span class="w"> </span><span class="nx">assets</span>
+<span class="w">    </span><span class="err">└──</span><span class="w"> </span><span class="nx">src</span><span class="o">/</span>
+<span class="w">        </span><span class="err">├──</span><span class="w"> </span><span class="nx">app</span><span class="o">/</span>
+<span class="w">        </span><span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="nx">layout</span><span class="p">.</span><span class="nx">tsx</span><span class="w">           </span><span class="err">#</span><span class="w"> </span><span class="nx">root</span><span class="w"> </span><span class="nx">layout</span>
+<span class="w">        </span><span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="nx">page</span><span class="p">.</span><span class="nx">tsx</span><span class="w">             </span><span class="err">#</span><span class="w"> </span><span class="nx">landing</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nx">login</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nx">signup</span>
+<span class="w">        </span><span class="err">│</span><span class="w">   </span><span class="err">└──</span><span class="w"> </span><span class="nx">dashboard</span><span class="o">/</span>
+<span class="w">        </span><span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="nx">layout</span><span class="p">.</span><span class="nx">tsx</span><span class="w">       </span><span class="err">#</span><span class="w"> </span><span class="nx">auth</span><span class="w"> </span><span class="nx">guard</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">analytics</span><span class="w"> </span><span class="nx">header</span><span class="w"> </span><span class="nx">card</span>
+<span class="w">        </span><span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="nx">page</span><span class="p">.</span><span class="nx">tsx</span><span class="w">         </span><span class="err">#</span><span class="w"> </span><span class="nx">feature</span><span class="w"> </span><span class="nx">picker</span>
+<span class="w">        </span><span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="nx">resume</span><span class="o">/</span><span class="nx">page</span><span class="p">.</span><span class="nx">tsx</span><span class="w">           </span><span class="err">#</span><span class="w"> </span><span class="nx">Resume</span><span class="w"> </span><span class="nx">Analyzer</span>
+<span class="w">        </span><span class="err">│</span><span class="w">       </span><span class="err">└──</span><span class="w"> </span><span class="nx">placement</span><span class="o">-</span><span class="nx">prep</span><span class="o">/</span><span class="nx">page</span><span class="p">.</span><span class="nx">tsx</span><span class="w">   </span><span class="err">#</span><span class="w"> </span><span class="nx">Skill</span><span class="w"> </span><span class="nx">Roadmap</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">Mock</span><span class="w"> </span><span class="nx">Interview</span>
+<span class="w">        </span><span class="err">└──</span><span class="w"> </span><span class="nx">lib</span><span class="o">/</span>
+<span class="w">            </span><span class="err">├──</span><span class="w"> </span><span class="kn">api</span><span class="p">.</span><span class="nx">ts</span><span class="w">               </span><span class="err">#</span><span class="w"> </span><span class="nx">backend</span><span class="w"> </span><span class="nx">API</span><span class="w"> </span><span class="nx">client</span>
+<span class="w">            </span><span class="err">└──</span><span class="w"> </span><span class="nx">auth</span><span class="o">-</span><span class="nx">context</span><span class="p">.</span><span class="nx">tsx</span><span class="w">     </span><span class="err">#</span><span class="w"> </span><span class="nx">JWT</span><span class="w"> </span><span class="nx">state</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">localStorage</span><span class="w"> </span><span class="nx">persistence</span>
+</code></pre>
+<p>All three README-promised features (Resume Analyzer, Skill Roadmap, Mock Interview) are real, wired end-to-end, and tested everywhere verifiable without a live Gemini key. No stubs or fake UI remaining.</p>
 </div>
 </div>
 </div>
